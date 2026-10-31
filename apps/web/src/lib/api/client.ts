@@ -10,6 +10,8 @@ import { ApiError } from './types';
 
 const BASE: string = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8080/api/v1';
 
+export const API_BASE = BASE;
+
 let accessToken: string | null = null;
 
 export function setAccessToken(token: string | null) {

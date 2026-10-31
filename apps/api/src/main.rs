@@ -40,9 +40,16 @@ async fn main() -> Result<()> {
         .context("gagal menjalankan migrasi database")?;
     tracing::info!("migrasi database selesai");
 
+    let storage = transcribe_api::infra::storage::Storage::from_config(&cfg)
+        .context("inisialisasi object storage gagal")?;
+    let upload_limiter =
+        transcribe_api::middleware::rate_limit::RateLimiter::new(20, Duration::from_secs(3600));
+
     let state = AppState {
         db,
         cfg: Arc::new(cfg),
+        storage,
+        upload_limiter,
     };
     let listener = tokio::net::TcpListener::bind(("0.0.0.0", port))
         .await

@@ -5,6 +5,7 @@
 pub mod config;
 pub mod domain;
 pub mod error;
+pub mod infra;
 pub mod middleware;
 pub mod repositories;
 pub mod routes;
@@ -24,10 +25,11 @@ use tower_http::{
 /// Membangun aplikasi Axum lengkap (dipisah dari `main` agar bisa di-test in-proc).
 pub fn app(state: state::AppState) -> Router {
     let cors = build_cors(&state);
+    let max_upload = state.cfg.max_upload_bytes;
 
     Router::new()
         .merge(routes::misc::router())
-        .nest("/api/v1", routes::v1())
+        .nest("/api/v1", routes::v1(max_upload))
         .fallback(error::fallback_404)
         .layer(TraceLayer::new_for_http())
         .layer(cors)

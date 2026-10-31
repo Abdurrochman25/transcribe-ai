@@ -25,6 +25,18 @@ pub struct Config {
     pub refresh_token_ttl_secs: i64,
     /// Set true di produksi (HTTPS) agar cookie refresh hanya dikirim via https.
     pub cookie_secure: bool,
+    // ===== upload & storage (fase 2) =====
+    /// "s3" (S3/MinIO/R2) atau "local" (filesystem — dev tanpa MinIO).
+    pub storage_driver: String,
+    pub s3_endpoint: Option<String>,
+    pub s3_bucket: Option<String>,
+    pub s3_access_key: Option<String>,
+    pub s3_secret_key: Option<String>,
+    pub s3_region: Option<String>,
+    /// Root penyimpanan untuk driver "local".
+    pub storage_local_root: String,
+    pub max_upload_bytes: usize,
+    pub ffprobe_path: String,
 }
 
 impl Config {
@@ -63,6 +75,16 @@ impl Config {
             access_token_ttl_secs: env_parse("ACCESS_TOKEN_TTL_SECS", 900)?,
             refresh_token_ttl_secs: env_parse("REFRESH_TOKEN_TTL_SECS", 2_592_000)?,
             cookie_secure: env_parse("COOKIE_SECURE", false)?,
+            // ===== upload & storage =====
+            storage_driver: resolve_storage_driver(),
+            s3_endpoint: env_opt("S3_ENDPOINT"),
+            s3_bucket: env_opt("S3_BUCKET"),
+            s3_access_key: env_opt("S3_ACCESS_KEY"),
+            s3_secret_key: env_opt("S3_SECRET_KEY"),
+            s3_region: env_opt("S3_REGION"),
+            storage_local_root: env_string_or("STORAGE_LOCAL_ROOT", "tmp/storage"),
+            max_upload_bytes: env_parse("MAX_UPLOAD_BYTES", 209_715_200)?,
+            ffprobe_path: env_string_or("FFPROBE_PATH", "ffprobe"),
         };
         Ok(config)
     }
@@ -104,6 +126,30 @@ fn env_parse<T: std::str::FromStr>(name: &str, default: T) -> Result<T> {
             .parse()
             .map_err(|_| anyhow::anyhow!("environment variable `{name}` tidak valid")),
         _ => Ok(default),
+    }
+}
+
+fn env_opt(name: &str) -> Option<String> {
+    env::var(name)
+        .ok()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+}
+
+/// Default: "s3" bila kredensial S3 tersedia; selain itu "local" (dev tanpa MinIO).
+fn resolve_storage_driver() -> String {
+    let explicit = env_opt("STORAGE_DRIVER").map(|s| s.to_lowercase());
+    match explicit.as_deref() {
+        Some("s3") => "s3".to_string(),
+        Some("local") => "local".to_string(),
+        Some(other) => panic!("STORAGE_DRIVER tidak valid: {other} (pilihan: s3 | local)"),
+        None => {
+            if env_opt("S3_ENDPOINT").is_some() && env_opt("S3_BUCKET").is_some() {
+                "s3".to_string()
+            } else {
+                "local".to_string()
+            }
+        }
     }
 }
 

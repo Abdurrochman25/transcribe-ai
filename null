@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="id">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="text-scale" content="scale" />
+		
+	</head>
+	<body data-sveltekit-preload-data="hover">
+		<div style="display: contents">
+			<script>
+				{
+					__sveltekit_dev = {
+						base: new URL(".", location).pathname.slice(0, -1),
+						version: "1793436102264",
+						env: {}
+					};
+
+					const element = document.currentScript.parentElement;
+
+					import("./node_modules/@sveltejs/kit/src/runtime/client/entry.js").then(async (kit) => {
+						kit.init(__sveltekit_dev);
+						const app = await import("./@fs/D:/personal/transcribe-ai/apps/web/.svelte-kit/generated/dev/client/app.js");
+						kit.start(app, element);
+					});
+				}
+			</script>
+		</div>
+	</body>
+</html>

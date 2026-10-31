@@ -7,7 +7,7 @@ license = "MIT"
 
 [dependencies]
 axum = { version = "0.8", features = ["multipart"] }
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "fs", "process"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["trace", "cors"] }
 
@@ -37,6 +37,10 @@ anyhow = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 dotenvy = "0.15"
+object_store = { version = "0.14.2", features = ["aws", "http"] }
+futures = "0.3.34"
+tokio-util = { version = "0.7.20", features = ["io"] }
+tempfile = "3.27.0"
 
 [dev-dependencies]
 pretty_assertions = "1"

@@ -17,9 +17,9 @@ Estimasi untuk 1 developer full-time (bisa dipercepat kalau paralel). Setiap fas
 - **Demo:** daftar → masuk → dashboard kosong (protected).
 
 ## Fase 2 — Upload & Storage (minggu 3)
-- [ ] POST /transcripts multipart streaming → S3/MinIO + magic-byte validation + 413
-- [ ] ffprobe wrapper (durasi/mime), simpan metadata
-- [ ] Frontend: FileDropzone + wizard opsi + progress upload byte
+- [x] POST /transcripts multipart streaming → S3/MinIO + magic-byte validation + 413
+- [x] ffprobe wrapper (durasi/mime), simpan metadata
+- [x] Frontend: FileDropzone + wizard opsi + progress upload byte
 - **Demo:** upload mp3 muncul di dashboard dengan metadata durasi.
 
 ## Fase 3 — Job Pipeline & Groq (minggu 4–5)

@@ -36,15 +36,20 @@ fn test_config() -> Config {
         access_token_ttl_secs: 900,
         refresh_token_ttl_secs: 2_592_000,
         cookie_secure: false,
+        storage_driver: "local".into(),
+        s3_endpoint: None,
+        s3_bucket: None,
+        s3_access_key: None,
+        s3_secret_key: None,
+        s3_region: None,
+        storage_local_root: String::new(),
+        max_upload_bytes: 1024 * 1024,
+        ffprobe_path: "ffprobe".into(),
     }
 }
 
 async fn build_app(pool: PgPool) -> axum::Router {
-    let cfg = test_config();
-    app(AppState {
-        db: pool,
-        cfg: std::sync::Arc::new(cfg),
-    })
+    app(AppState::for_test(pool, test_config()))
 }
 
 /// Key unik per-test supaya rate limiter (per instance router) tidak saling ganggu.
