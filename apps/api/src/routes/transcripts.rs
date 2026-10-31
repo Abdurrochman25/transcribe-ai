@@ -22,8 +22,10 @@ use crate::{
 pub fn router(max_upload_bytes: usize) -> Router<AppState> {
     Router::new()
         .route("/", post(create).get(list))
-        .route("/{id}", get(detail))
+        .route("/{id}", get(detail).patch(patch))
+        .route("/{id}/audio", get(audio))
         .route("/{id}/events", get(events))
+        .route("/{id}/export", get(export))
         .route("/{id}/cancel", post(cancel))
         .route("/{id}/retry", post(retry))
         // multipart body limit = ukuran file + margin field teks (docs/08 §2)
@@ -135,12 +137,13 @@ fn non_empty(value: Option<String>) -> Option<String> {
 
 // ===== GET /transcripts/{id} (detail) =====
 
-async fn detail(
-    State(state): State<AppState>,
-    auth: AuthUser,
-    axum::extract::Path(id): axum::extract::Path<uuid::Uuid>,
+/// Respons detail dipakai GET & PATCH (docs/03 — PATCH mengembalikan detail terbaru).
+async fn detail_response(
+    state: &AppState,
+    id: uuid::Uuid,
+    user_id: uuid::Uuid,
 ) -> Result<Response, AppError> {
-    let row = crate::repositories::transcripts::find_by_id_for_user(&state.db, id, auth.user_id)
+    let row = crate::repositories::transcripts::find_by_id_for_user(&state.db, id, user_id)
         .await?
         .ok_or(AppError::NotFound)?;
 
@@ -151,24 +154,284 @@ async fn detail(
         vec![]
     };
 
-    // TODO(fase 4): audio_url presigned untuk player editor.
+    // Player audio: endpoint streaming ber-auth (klien menambah `?token=`).
+    // Null bila audio sudah dihapus oleh retensi/cancel.
+    let audio_url =
+        (!row.storage_key.is_empty()).then(|| format!("/api/v1/transcripts/{id}/audio"));
+
     Ok(Json(json!({
         "transcript": row.to_public(),
         "segments": segments,
+        "audio_url": audio_url,
     }))
     .into_response())
 }
 
-// ===== GET /transcripts/{id}/events (SSE) =====
+async fn detail(
+    State(state): State<AppState>,
+    auth: AuthUser,
+    axum::extract::Path(id): axum::extract::Path<uuid::Uuid>,
+) -> Result<Response, AppError> {
+    detail_response(&state, id, auth.user_id).await
+}
 
-/// EventSource tidak bisa mengirim header Authorization → terima juga
-/// `?token=<access_jwt>` (TTL 15 menit) sebagai alternatif Bearer.
-async fn events(
+// ===== PATCH /transcripts/{id} (editor) =====
+
+#[derive(Deserialize)]
+struct PatchBody {
+    title: Option<String>,
+    segments: Option<Vec<PatchSegment>>,
+}
+
+#[derive(Deserialize)]
+struct PatchSegment {
+    idx: i32,
+    text: String,
+}
+
+async fn patch(
+    State(state): State<AppState>,
+    auth: AuthUser,
+    axum::extract::Path(id): axum::extract::Path<uuid::Uuid>,
+    Json(body): Json<PatchBody>,
+) -> Result<Response, AppError> {
+    let row = crate::repositories::transcripts::find_by_id_for_user(&state.db, id, auth.user_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    // Validasi judul (dipakai list/search — jaga wajar).
+    if let Some(t) = &body.title {
+        let t = t.trim();
+        if t.is_empty() || t.chars().count() > 200 {
+            return Err(AppError::Validation(vec![FieldError {
+                field: "title".into(),
+                issue: "judul wajib 1–200 karakter".into(),
+            }]));
+        }
+    }
+
+    // Edit segment hanya saat completed (docs/03) → selain itu 409.
+    if body.segments.is_some() && row.status != "completed" {
+        return Err(AppError::Conflict(
+            "segment hanya bisa diedit setelah transkripsi selesai",
+        ));
+    }
+    for s in body.segments.iter().flatten() {
+        let t = s.text.trim();
+        if t.is_empty() || t.chars().count() > 5000 {
+            return Err(AppError::Validation(vec![FieldError {
+                field: "segments".into(),
+                issue: format!("teks segment idx={} wajib 1–5000 karakter", s.idx),
+            }]));
+        }
+    }
+
+    if let Some(title) = &body.title {
+        crate::repositories::transcripts::update_title(&state.db, id, auth.user_id, title.trim())
+            .await?;
+    }
+    if let Some(segs) = &body.segments {
+        let mut missing = Vec::new();
+        for s in segs {
+            let ok = crate::repositories::transcripts::update_segment_text(
+                &state.db,
+                id,
+                s.idx,
+                s.text.trim(),
+            )
+            .await?;
+            if !ok {
+                missing.push(s.idx);
+            }
+        }
+        if !missing.is_empty() {
+            tracing::warn!(transcript_id = %id, ?missing, "segment tidak ditemukan saat PATCH");
+        }
+        let _ = crate::repositories::transcripts::log_event(
+            &state.db,
+            id,
+            "completed",
+            "completed",
+            &format!("{} segment diedit user", segs.len()),
+        )
+        .await;
+    }
+    tracing::info!(transcript_id = %id, "transcript diedit user");
+
+    detail_response(&state, id, auth.user_id).await
+}
+
+// ===== GET /transcripts/{id}/audio (streaming + HTTP Range) =====
+
+/// Elemen `<audio>` butuh dukungan Range agar seek berfungsi (RFC 7233).
+/// `bytes=a-b` | `bytes=a-` | `bytes=-n` (suffix). Di-clamp ke ukuran file;
+/// range tak satisfiable → fallback 200 penuh (sederhana & aman untuk player).
+fn parse_range(h: &str, size: u64) -> Option<(u64, u64)> {
+    let spec = h.strip_prefix("bytes=")?.trim();
+    let (a, b) = spec.split_once('-')?;
+    if a.is_empty() {
+        // Suffix: N byte terakhir.
+        let n: u64 = b.parse().ok()?;
+        if n == 0 || size == 0 {
+            return None;
+        }
+        let n = n.min(size);
+        Some((size - n, size - 1))
+    } else {
+        let start: u64 = a.parse().ok()?;
+        if start >= size {
+            return None;
+        }
+        let end = match b.parse::<u64>() {
+            Ok(e) if e >= start => e.min(size - 1),
+            Ok(_) => return None,
+            Err(_) => size - 1, // "a-" → sampai akhir
+        };
+        Some((start, end))
+    }
+}
+
+async fn audio(
     State(state): State<AppState>,
     axum::extract::Path(id): axum::extract::Path<uuid::Uuid>,
     axum::extract::Query(query): axum::extract::Query<std::collections::HashMap<String, String>>,
     headers: HeaderMap,
 ) -> Response {
+    let Some(user_id) = token_or_bearer_user_id(&state, &headers, &query) else {
+        return AppError::Unauthenticated(crate::services::auth::MSG_PERLU_LOGIN).into_response();
+    };
+    let row =
+        match crate::repositories::transcripts::find_by_id_for_user(&state.db, id, user_id).await {
+            Ok(Some(r)) => r,
+            _ => return AppError::NotFound.into_response(),
+        };
+    if row.storage_key.is_empty() {
+        return AppError::NotFound.into_response(); // audio dihapus retensi/cancel
+    }
+
+    let size = match state.storage.head_size(&row.storage_key).await {
+        Ok(s) => s,
+        Err(e) => {
+            tracing::error!(transcript_id = %id, error = %e, "audio hilang dari storage");
+            return AppError::NotFound.into_response();
+        }
+    };
+
+    let range = headers
+        .get(header::RANGE)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|h| parse_range(h, size));
+
+    let builder = match range {
+        Some((start, end)) => {
+            let bytes = match state.storage.get_range(&row.storage_key, start, end).await {
+                Ok(b) => b,
+                Err(e) => {
+                    return AppError::Internal(anyhow::anyhow!("baca audio gagal: {e}"))
+                        .into_response();
+                }
+            };
+            let last = start + bytes.len() as u64 - 1;
+            Response::builder()
+                .status(StatusCode::PARTIAL_CONTENT)
+                .header(
+                    header::CONTENT_RANGE,
+                    format!("bytes {start}-{last}/{size}"),
+                )
+                .header(header::CONTENT_LENGTH, bytes.len())
+                .body(axum::body::Body::from(bytes))
+        }
+        None => {
+            // Tanpa Range → stream penuh tanpa buffering memori.
+            let stream = match state.storage.get_stream(&row.storage_key).await {
+                Ok(s) => s,
+                Err(e) => {
+                    return AppError::Internal(anyhow::anyhow!("buka audio gagal: {e}"))
+                        .into_response();
+                }
+            };
+            Response::builder()
+                .status(StatusCode::OK)
+                .header(header::CONTENT_LENGTH, size)
+                .body(axum::body::Body::from_stream(stream))
+        }
+    };
+
+    builder
+        .map(|res| {
+            let (mut parts, body) = res.into_parts();
+            parts
+                .headers
+                .insert(header::ACCEPT_RANGES, HeaderValue::from_static("bytes"));
+            parts.headers.insert(
+                header::CONTENT_TYPE,
+                HeaderValue::from_str(&row.mime_type)
+                    .unwrap_or(HeaderValue::from_static("application/octet-stream")),
+            );
+            Response::from_parts(parts, body)
+        })
+        .unwrap_or_else(|e| {
+            AppError::Internal(anyhow::anyhow!("respons audio gagal: {e}")).into_response()
+        })
+}
+
+// ===== GET /transcripts/{id}/export =====
+
+#[derive(Deserialize)]
+struct ExportQuery {
+    format: Option<String>,
+}
+
+async fn export(
+    State(state): State<AppState>,
+    auth: AuthUser,
+    axum::extract::Path(id): axum::extract::Path<uuid::Uuid>,
+    axum::extract::Query(q): axum::extract::Query<ExportQuery>,
+) -> Result<Response, AppError> {
+    let Some(format) = q
+        .format
+        .as_deref()
+        .and_then(services::export::ExportFormat::parse)
+    else {
+        return Err(AppError::Validation(vec![FieldError {
+            field: "format".into(),
+            issue: "harus salah satu: txt, srt, vtt, json".into(),
+        }]));
+    };
+
+    let row = crate::repositories::transcripts::find_by_id_for_user(&state.db, id, auth.user_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    if row.status != "completed" {
+        return Err(AppError::Conflict(
+            "export hanya untuk transkripsi yang selesai",
+        ));
+    }
+
+    let segs = crate::repositories::transcripts::segments_for(&state.db, id).await?;
+    let body = services::export::render(format, &row, &services::export::from_repo(&segs));
+    let filename = format!("{}.{}", services::export::slugify(&row.title), format.ext());
+
+    let res = Response::builder()
+        .status(StatusCode::OK)
+        .header(header::CONTENT_TYPE, format.mime())
+        .header(
+            header::CONTENT_DISPOSITION,
+            format!("attachment; filename=\"{filename}\""),
+        )
+        .body(axum::body::Body::from(body));
+    res.map_err(|e| AppError::Internal(anyhow::anyhow!("respons export gagal: {e}")))
+}
+
+// ===== GET /transcripts/{id}/events (SSE) =====
+
+/// EventSource/`<audio>` tidak bisa mengirim header Authorization → terima juga
+/// `?token=<access_jwt>` (TTL 15 menit) sebagai alternatif Bearer (dipakai events & audio).
+fn token_or_bearer_user_id(
+    state: &AppState,
+    headers: &HeaderMap,
+    query: &std::collections::HashMap<String, String>,
+) -> Option<uuid::Uuid> {
     let token: Option<String> = headers
         .get(header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
@@ -176,20 +439,25 @@ async fn events(
         .map(|v| v.to_string())
         .or_else(|| query.get("token").cloned());
 
-    let Some(token) = token else {
-        return AppError::Unauthenticated(crate::services::auth::MSG_PERLU_LOGIN).into_response();
-    };
-
+    let token = token?;
     let claims = jsonwebtoken::decode::<crate::services::auth::Claims>(
         &token,
         &jsonwebtoken::DecodingKey::from_secret(state.cfg.jwt_secret.as_bytes()),
         &jsonwebtoken::Validation::default(),
     );
-    let user_id = match claims {
+    match claims {
         Ok(c) => uuid::Uuid::parse_str(&c.claims.sub).ok(),
         Err(_) => None,
-    };
-    let Some(user_id) = user_id else {
+    }
+}
+
+async fn events(
+    State(state): State<AppState>,
+    axum::extract::Path(id): axum::extract::Path<uuid::Uuid>,
+    axum::extract::Query(query): axum::extract::Query<std::collections::HashMap<String, String>>,
+    headers: HeaderMap,
+) -> Response {
+    let Some(user_id) = token_or_bearer_user_id(&state, &headers, &query) else {
         return AppError::Unauthenticated(crate::services::auth::MSG_PERLU_LOGIN).into_response();
     };
 

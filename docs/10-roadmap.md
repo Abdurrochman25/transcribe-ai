@@ -32,10 +32,10 @@ Estimasi untuk 1 developer full-time (bisa dipercepat kalau paralel). Setiap fas
 - **Demo:** file 40 menit → transcript selesai dengan progress live. *(Kriteria metrik: <60 dtk untuk audio 10 menit.)*
 
 ## Fase 4 — Editor & Export (minggu 6–7)
-- [ ] GET /transcripts/:id (+presigned audio), PATCH segments/title
-- [ ] Export TXT/SRT/VTT/JSON + unit test formatter
-- [ ] Frontend: player sinkron, SegmentList virtualized, edit inline optimistic, ExportMenu
-- [ ] Retry & cancel dari UI
+- [x] GET /transcripts/:id (+audio streaming Range; S3 presigned menyusul), PATCH segments/title
+- [x] Export TXT/SRT/VTT/JSON + unit test formatter
+- [x] Frontend: player sinkron, edit inline optimistic, ExportMenu (SegmentList virtualized menyusul bila perlu)
+- [x] Retry & cancel dari UI
 - **Demo:** alur penuh upload→edit→unduh SRT. **← MVP FEATURE COMPLETE**
 
 ## Fase 5 — Hardening Rilis (minggu 8)

@@ -107,3 +107,22 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
 	if (res.status === 204) return undefined as T;
 	return (await res.json()) as T;
 }
+
+/** Ambil file (unduhan export) sebagai Blob — auth + refresh-on-401 sama dengan `api`. */
+export async function apiBlob(path: string): Promise<Blob> {
+	const doFetch = () =>
+		fetch(`${BASE}${path}`, {
+			credentials: 'include',
+			headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
+		});
+
+	let res = await doFetch();
+	if (res.status === 401 && accessToken) {
+		const refreshed = await refreshTokens();
+		if (refreshed) res = await doFetch();
+	}
+	if (!res.ok) {
+		await parseError(res);
+	}
+	return res.blob();
+}

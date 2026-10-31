@@ -120,6 +120,37 @@ impl Storage {
         Ok(written)
     }
 
+    /// Ukuran object (bytes) — untuk Content-Length & parsing Range audio.
+    pub async fn head_size(&self, key: &str) -> Result<u64> {
+        let meta = self.inner.head(&Path::from(key)).await?;
+        Ok(meta.size as u64)
+    }
+
+    /// Ambil rentang byte `start..=end` (audio streaming / HTTP Range).
+    pub async fn get_range(
+        &self,
+        key: &str,
+        start: u64,
+        end_inclusive: u64,
+    ) -> Result<bytes::Bytes> {
+        let range = start..end_inclusive.saturating_add(1).max(start + 1);
+        Ok(self.inner.get_range(&Path::from(key), range).await?)
+    }
+
+    /// Stream object penuh (respons audio tanpa Range) — tanpa buffering memori.
+    /// Boxed `'static`: stream hidup di body respons setelah handler kembali.
+    pub async fn get_stream(
+        &self,
+        key: &str,
+    ) -> Result<
+        std::pin::Pin<
+            Box<dyn futures::Stream<Item = Result<bytes::Bytes, object_store::Error>> + Send>,
+        >,
+    > {
+        let result = self.inner.get(&Path::from(key)).await?;
+        Ok(Box::pin(result.into_stream()))
+    }
+
     pub async fn delete(&self, key: &str) -> Result<()> {
         self.inner.delete(&Path::from(key)).await?;
         Ok(())

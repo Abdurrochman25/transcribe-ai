@@ -1,4 +1,4 @@
-import { API_BASE, api, getAccessToken } from './client';
+import { API_BASE, api, apiBlob, getAccessToken } from './client';
 import { ApiError, type FieldError } from './types';
 
 export type TranscriptStatus =
@@ -75,10 +75,49 @@ export interface Segment {
 export interface TranscriptDetail {
 	transcript: Transcript;
 	segments: Segment[];
+	/** Null bila audio sudah dihapus retensi/cancel (docs/03). */
+	audio_url: string | null;
 }
 
 export async function getTranscript(id: string): Promise<TranscriptDetail> {
 	return api<TranscriptDetail>(`/transcripts/${id}`);
+}
+
+// ===== editor (fase 4) =====
+
+export interface PatchSegmentInput {
+	idx: number;
+	text: string;
+}
+
+export interface PatchInput {
+	title?: string;
+	segments?: PatchSegmentInput[];
+}
+
+export async function patchTranscript(id: string, input: PatchInput): Promise<TranscriptDetail> {
+	return api<TranscriptDetail>(`/transcripts/${id}`, { method: 'PATCH', body: input });
+}
+
+/** URL elemen `<audio>` — endpoint streaming; token via query karena elemen
+ *  tidak bisa kirim header Authorization (TTL 15 mnt, auto-segar saat error). */
+export function audioSrcUrl(id: string, nonce = 0): string {
+	const token = getAccessToken();
+	const q = token ? `?token=${encodeURIComponent(token)}` : '';
+	return `${API_BASE}/transcripts/${id}/audio${q}${nonce ? `${token ? '&' : '?'}n=${nonce}` : ''}`;
+}
+
+export type ExportFormat = 'txt' | 'srt' | 'vtt' | 'json';
+
+/** Unduh export dari backend (blob via fetch ber-auth → anchor download). */
+export async function downloadExport(id: string, format: ExportFormat, filename: string): Promise<void> {
+	const blob = await apiBlob(`/transcripts/${id}/export?format=${format}`);
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement('a');
+	a.href = url;
+	a.download = filename;
+	a.click();
+	URL.revokeObjectURL(url);
 }
 
 export interface UploadOptions {

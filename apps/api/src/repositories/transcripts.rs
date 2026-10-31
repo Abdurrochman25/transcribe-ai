@@ -365,6 +365,55 @@ pub async fn mark_audio_purged(db: &PgPool, id: Uuid) -> Result<(), sqlx::Error>
     Ok(())
 }
 
+// ===== editor (fase 4) =====
+
+pub async fn update_title(
+    db: &PgPool,
+    id: Uuid,
+    user_id: Uuid,
+    title: &str,
+) -> Result<bool, sqlx::Error> {
+    let res = sqlx::query(
+        "UPDATE transcripts SET title = $3, updated_at = now()
+         WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL",
+    )
+    .bind(id)
+    .bind(user_id)
+    .bind(title)
+    .execute(db)
+    .await?;
+    Ok(res.rows_affected() > 0)
+}
+
+/// Update teks satu segment + tandai edited (jejak audit ringan — docs/03 PATCH).
+/// Return false bila (transcript_id, idx) tidak ditemukan.
+pub async fn update_segment_text(
+    db: &PgPool,
+    transcript_id: Uuid,
+    idx: i32,
+    text: &str,
+) -> Result<bool, sqlx::Error> {
+    let res = sqlx::query(
+        "UPDATE segments SET text = $3, edited = true
+         WHERE transcript_id = $1 AND idx = $2",
+    )
+    .bind(transcript_id)
+    .bind(idx)
+    .bind(text)
+    .execute(db)
+    .await?;
+    Ok(res.rows_affected() > 0)
+}
+
+pub async fn count_edited(db: &PgPool, transcript_id: Uuid) -> Result<i64, sqlx::Error> {
+    let row: (i64,) =
+        sqlx::query_as("SELECT count(*) FROM segments WHERE transcript_id = $1 AND edited = true")
+            .bind(transcript_id)
+            .fetch_one(db)
+            .await?;
+    Ok(row.0)
+}
+
 /// Jam PATCH metadata — dipakai fase 4 (editor).
 #[allow(dead_code)]
 pub async fn touch(db: &PgPool, id: Uuid, now: OffsetDateTime) -> Result<(), sqlx::Error> {
