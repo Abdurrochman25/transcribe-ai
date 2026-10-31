@@ -93,7 +93,9 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
 	let res = await doFetch();
 
 	// 401 pada endpoint terproteksi → coba refresh sekali, ulangi request.
-	if (res.status === 401 && auth && accessToken) {
+	// Tanpa syarat accessToken: setelah reload memori kosong, justru cookie refresh
+	// yang harus memulihkan sesi (bug: dulu butuh access token agar refresh jalan).
+	if (res.status === 401 && auth) {
 		const refreshed = await refreshTokens();
 		if (refreshed) {
 			res = await doFetch();
@@ -117,7 +119,8 @@ export async function apiBlob(path: string): Promise<Blob> {
 		});
 
 	let res = await doFetch();
-	if (res.status === 401 && accessToken) {
+	if (res.status === 401) {
+		// Sama dengan `api`: cookie refresh memulihkan sesi walau memori kosong.
 		const refreshed = await refreshTokens();
 		if (refreshed) res = await doFetch();
 	}
