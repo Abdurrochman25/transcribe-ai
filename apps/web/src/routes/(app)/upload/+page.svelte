@@ -163,10 +163,10 @@
 
 			<div class="mt-5 flex justify-center gap-3">
 				<a
-					href="/dashboard"
+					href={jobEvent?.type === 'completed' ? `/t/${done.id}` : '/dashboard'}
 					class="rounded-lg bg-accent px-5 py-2.5 font-medium text-white transition-colors hover:bg-accent-hover"
 				>
-					Lihat dashboard
+					{jobEvent?.type === 'completed' ? 'Lihat hasil →' : 'Lihat dashboard'}
 				</a>
 				<button
 					type="button"

@@ -157,7 +157,7 @@
 					<li class="rounded-xl border border-line bg-surface p-4 shadow-sm transition-colors hover:border-accent/40">
 						<div class="flex flex-wrap items-center justify-between gap-2">
 							<div class="min-w-0">
-								<p class="truncate font-medium">{t.title}</p>
+								<a href="/t/{t.id}" class="truncate font-medium transition-colors hover:text-accent">{t.title}</a>
 								<p class="mt-0.5 truncate text-xs text-muted">
 									{t.source_filename} · {formatBytes(t.size_bytes)}
 									{#if t.duration_seconds}· {formatDuration(t.duration_seconds)}{/if}
@@ -169,7 +169,13 @@
 								<span class="rounded-full px-3 py-1 text-xs font-medium {statusClass(displayStatus(t))}">
 									{STATUS_LABEL[displayStatus(t)] ?? displayStatus(t)}
 								</span>
-								{#if ACTIVE.has(displayStatus(t))}
+								{#if displayStatus(t) === 'completed'}
+									<a href="/t/{t.id}"
+										class="rounded-lg border border-line px-3 py-1 text-xs font-medium text-muted transition-colors hover:bg-surface-2"
+									>
+										Lihat hasil →
+									</a>
+								{:else if ACTIVE.has(displayStatus(t))}
 									<button
 										type="button"
 										onclick={() => onCancel(t.id)}

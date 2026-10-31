@@ -12,6 +12,17 @@ export function formatDuration(seconds: number | null | undefined): string {
 	return `${m}m ${String(s).padStart(2, '0')}s`;
 }
 
+/** Timecode pendek untuk daftar segment: `mm:ss` / `h:mm:ss`. */
+export function formatTimecode(ms: number): string {
+	const total = Math.floor(ms / 1000);
+	const s = total % 60;
+	const m = Math.floor(total / 60) % 60;
+	const h = Math.floor(total / 3600);
+	const mm = String(m).padStart(2, '0');
+	const ss = String(s).padStart(2, '0');
+	return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
 export function formatBytes(bytes: number): string {
 	if (bytes < 1024) return `${bytes} B`;
 	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;

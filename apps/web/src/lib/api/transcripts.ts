@@ -62,8 +62,23 @@ export async function retryTranscript(id: string): Promise<void> {
 	await api<void>(`/transcripts/${id}/retry`, { method: 'POST' });
 }
 
-export async function getTranscript(id: string): Promise<{ transcript: Transcript }> {
-	return api<{ transcript: Transcript }>(`/transcripts/${id}`);
+/** Hasil transkripsi per segment (docs/03 — hanya tersedia setelah completed). */
+export interface Segment {
+	idx: number;
+	start_ms: number;
+	end_ms: number;
+	text: string;
+	confidence: number | null;
+	edited: boolean;
+}
+
+export interface TranscriptDetail {
+	transcript: Transcript;
+	segments: Segment[];
+}
+
+export async function getTranscript(id: string): Promise<TranscriptDetail> {
+	return api<TranscriptDetail>(`/transcripts/${id}`);
 }
 
 export interface UploadOptions {
