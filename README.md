@@ -2,7 +2,7 @@
 
 Aplikasi web transkripsi audio/video berbasis AI — ubah rekaman menjadi teks yang akurat, bisa diedit, dan diekspor ke berbagai format (TXT, SRT, VTT, JSON).
 
-> **Status: Fase Perencanaan** — repo ini berisi blueprint lengkap (system design, API spec, DB design, UI design, deployment, roadmap) yang siap dieksekusi.
+> **Status: Fase 0 selesai** — blueprint lengkap di `docs/` + scaffold hidup: API Rust/Axum (health, error envelope, migrasi DB) + web SvelteKit + docker-compose + CI. Lihat [Roadmap](docs/10-roadmap.md).
 
 ## Ringkasan Produk
 
@@ -53,6 +53,31 @@ Aplikasi web transkripsi audio/video berbasis AI — ubah rekaman menjadi teks y
 | 09 | [Deployment & Infra](docs/09-deployment.md) | Docker, CI/CD GitHub Actions, environment, monitoring |
 | 10 | [Roadmap](docs/10-roadmap.md) | Fase pengembangan, estimasi, milestone |
 | ADR | [Architecture Decision Records](docs/adr/) | Log keputusan: kenapa Axum, Groq, SvelteKit, dll. |
+
+## 🚀 Menjalankan Dev
+
+**Cara cepat (semua service, butuh Docker):**
+```bash
+cp .env.example .env
+docker compose up --build
+# web → http://localhost:5173 · API → http://localhost:8080/health
+```
+
+**Cara manual (tanpa Docker, perlu Postgres lokal):**
+```bash
+# 1) API
+cd apps/api
+DATABASE_URL=postgres://... JWT_SECRET=... cargo run
+# 2) Web (terminal lain)
+cd apps/web
+npm install && npm run dev
+```
+
+**Verifikasi kualitas (sama dengan CI):**
+```bash
+cd apps/api  && cargo fmt --all -- --check && cargo clippy --all-targets -- -D warnings && cargo test
+cd apps/web  && npm run check && npm run build
+```
 
 ## Struktur Repo (target saat implementasi)
 

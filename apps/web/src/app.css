@@ -1,0 +1,35 @@
+@import 'tailwindcss';
+
+/*
+ * Design tokens — lihat docs/07-ui-design.md §2.
+ * Dipetakan ke utilities Tailwind via @theme: bg-bg, bg-surface, text-muted, dst.
+ * TODO(v1.1): tema gelap (.dark) via CSS variables runtime.
+ */
+@theme {
+	--color-bg: #fafafa;
+	--color-surface: #ffffff;
+	--color-surface-2: #f4f4f5;
+	--color-text: #18181b;
+	--color-muted: #71717a;
+	--color-line: #e4e4e7;
+	--color-accent: #0d9488;
+	--color-accent-hover: #0f766e;
+	--color-accent-soft: #ccfbf1;
+	--color-success: #16a34a;
+	--color-warning: #d97706;
+	--color-danger: #dc2626;
+
+	--font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+	--font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+:root {
+	color-scheme: light;
+}
+
+body {
+	background-color: var(--color-bg);
+	color: var(--color-text);
+	font-family: var(--font-sans);
+	-webkit-font-smoothing: antialiased;
+}

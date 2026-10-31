@@ -3,10 +3,11 @@
 Estimasi untuk 1 developer full-time (bisa dipercepat kalau paralel). Setiap fase diakhiri demo yang bisa dipakai.
 
 ## Fase 0 — Fondasi (minggu 1)
-- [ ] Scaffold monorepo: `apps/api` (cargo), `apps/web` (SvelteKit), docker-compose dev
-- [ ] CI GitHub Actions: fmt + clippy + test (api), check + lint + build (web)
-- [ ] Migrasi awal (0001_init), config loader, tracing, error envelope, health/ready
-- [ ] Konvensi: commit message (conventional commits), branch naming, code review checklist
+- [x] Scaffold monorepo: `apps/api` (cargo), `apps/web` (SvelteKit), docker-compose dev
+- [x] CI GitHub Actions: fmt + clippy + test (api), check + lint + build (web)
+- [x] Migrasi awal (0001_init), config loader, tracing, error envelope, health/ready
+- [x] Konvensi: commit message (conventional commits), branch naming, code review checklist
+- [ ] Demo: `docker compose up` → `/health` hijau *(butuh Docker Desktop di mesin lokal; CI & file compose siap)*
 - **Demo:** `docker compose up` → `/health` hijau, hello-world auth endpoint.
 
 ## Fase 1 — Auth & User (minggu 2)

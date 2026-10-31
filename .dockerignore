@@ -1,0 +1,15 @@
+.git
+.opencode
+docs
+target
+**/target
+**/node_modules
+**/.svelte-kit
+**/dist
+**/build
+tmp
+.env
+.env.*
+!.env.example
+*.md
+LICENSE

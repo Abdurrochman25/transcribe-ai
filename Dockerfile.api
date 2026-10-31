@@ -1,0 +1,23 @@
+# Lihat docs/09-deployment.md §2.
+# TODO(fase-1+): cargo-chef untuk layer caching build.
+
+FROM rust:1-slim AS build
+WORKDIR /app
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends build-essential pkg-config \
+ && rm -rf /var/lib/apt/lists/*
+
+COPY apps/api/Cargo.toml apps/api/Cargo.lock ./
+COPY apps/api/src ./src
+COPY apps/api/migrations ./migrations
+RUN cargo build --release
+
+FROM debian:bookworm-slim
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ffmpeg ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+COPY --from=build /app/target/release/transcribe-api /usr/local/bin/
+ENV RUST_LOG=info
+USER 1000
+EXPOSE 8080
+ENTRYPOINT ["transcribe-api"]
