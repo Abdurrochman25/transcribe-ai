@@ -37,6 +37,15 @@ pub struct Config {
     pub storage_local_root: String,
     pub max_upload_bytes: usize,
     pub ffprobe_path: String,
+    pub ffmpeg_path: String,
+    // ===== worker & groq (fase 3) =====
+    pub groq_max_retries: u32,
+    pub groq_retry_base_ms: u64,
+    pub groq_chunk_bytes: usize,
+    pub groq_chunk_seconds: u64,
+    pub worker_concurrency: usize,
+    pub worker_poll_interval_ms: u64,
+    pub audio_retention_days: i64,
 }
 
 impl Config {
@@ -85,6 +94,14 @@ impl Config {
             storage_local_root: env_string_or("STORAGE_LOCAL_ROOT", "tmp/storage"),
             max_upload_bytes: env_parse("MAX_UPLOAD_BYTES", 209_715_200)?,
             ffprobe_path: env_string_or("FFPROBE_PATH", "ffprobe"),
+            ffmpeg_path: env_string_or("FFMPEG_PATH", "ffmpeg"),
+            groq_max_retries: env_parse("GROQ_MAX_RETRIES", 3)?,
+            groq_retry_base_ms: env_parse("GROQ_RETRY_BASE_MS", 500)?,
+            groq_chunk_bytes: env_parse("GROQ_CHUNK_BYTES", 26_214_400)?,
+            groq_chunk_seconds: env_parse("GROQ_CHUNK_SECONDS", 600)?,
+            worker_concurrency: env_parse("WORKER_CONCURRENCY", 4)?,
+            worker_poll_interval_ms: env_parse("WORKER_POLL_INTERVAL_MS", 2_000)?,
+            audio_retention_days: env_parse("AUDIO_RETENTION_DAYS", 30)?,
         };
         Ok(config)
     }

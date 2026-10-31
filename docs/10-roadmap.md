@@ -23,12 +23,12 @@ Estimasi untuk 1 developer full-time (bisa dipercepat kalau paralel). Setiap fas
 - **Demo:** upload mp3 muncul di dashboard dengan metadata durasi.
 
 ## Fase 3 — Job Pipeline & Groq (minggu 4–5)
-- [ ] Worker supervisor (claim SKIP LOCKED), state machine, SSE hub
-- [ ] GroqClient + retry/backoff, verbose_json → segments (offset chunking)
-- [ ] Chunking ffmpeg untuk file >25 MB + checkpoint cancel
-- [ ] Reaper job stale + maintenance task retensi
-- [ ] Frontend: progress live, badge status, polling fallback
-- [ ] Integration test dengan wiremock (happy + 429 retry + cancel)
+- [x] Worker supervisor (claim SKIP LOCKED), state machine, SSE hub
+- [x] GroqClient + retry/backoff, verbose_json → segments (offset chunking)
+- [x] Chunking ffmpeg untuk file >25 MB + checkpoint cancel
+- [x] Reaper job stale + maintenance task retensi
+- [x] Frontend: progress live, badge status, polling fallback
+- [x] Integration test dengan wiremock (happy + 429 retry + cancel)
 - **Demo:** file 40 menit → transcript selesai dengan progress live. *(Kriteria metrik: <60 dtk untuk audio 10 menit.)*
 
 ## Fase 4 — Editor & Export (minggu 6–7)

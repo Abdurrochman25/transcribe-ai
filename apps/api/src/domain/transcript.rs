@@ -27,6 +27,7 @@ pub struct TranscriptRow {
     pub prompt_hint: Option<String>,
     pub status: String,
     pub progress: i16,
+    pub error: Option<String>,
     pub created_at: OffsetDateTime,
     pub completed_at: Option<OffsetDateTime>,
 }
@@ -47,6 +48,8 @@ pub struct TranscriptPublic {
     pub model: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub prompt_hint: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
     #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
     #[serde(
@@ -71,6 +74,7 @@ impl TranscriptRow {
             requested_language: self.requested_language.clone(),
             model: self.model.clone(),
             prompt_hint: self.prompt_hint.clone(),
+            error: self.error.clone(),
             created_at: self.created_at,
             completed_at: self.completed_at,
         }

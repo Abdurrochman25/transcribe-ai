@@ -41,10 +41,14 @@ object_store = { version = "0.14.2", features = ["aws", "http"] }
 futures = "0.3.34"
 tokio-util = { version = "0.7.20", features = ["io"] }
 tempfile = "3.27.0"
+reqwest = { version = "0.13.5", features = ["multipart", "json"] }
+tokio-stream = "0.1.19"
+bytes = "1.12.1"
 
 [dev-dependencies]
 pretty_assertions = "1"
 tower = { version = "0.5", features = ["util"] }
+wiremock = "0.6.5"
 
 [[bin]]
 name = "transcribe-api"

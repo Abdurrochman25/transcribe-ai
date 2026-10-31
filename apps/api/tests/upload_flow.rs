@@ -43,6 +43,14 @@ fn test_config() -> Config {
         storage_local_root: String::new(),
         max_upload_bytes: 1024 * 1024, // 1 MB — cukup untuk WAV test
         ffprobe_path: "ffprobe".into(),
+        ffmpeg_path: "ffmpeg".into(),
+        groq_max_retries: 3,
+        groq_retry_base_ms: 1,
+        groq_chunk_bytes: 1024 * 1024,
+        groq_chunk_seconds: 600,
+        worker_concurrency: 1,
+        worker_poll_interval_ms: 50,
+        audio_retention_days: 30,
     }
 }
 

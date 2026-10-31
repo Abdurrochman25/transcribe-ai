@@ -1,0 +1,7 @@
+# Env default untuk `cargo run`/`cargo test` lokal (tidak menimpa env yang sudah ada).
+# CI men-set env sendiri — nilai ini hanya fallback dev.
+# CATATAN: GROQ_API_KEY sengaja TIDAK di sini agar nilai dari .env (dotenvy)
+# tidak tertimpa placeholder saat `cargo run`.
+[env]
+DATABASE_URL = "postgres://app:dev@localhost:5432/transcribe"
+JWT_SECRET = "dev-secret-hanya-untuk-dev-lokal-32b!"

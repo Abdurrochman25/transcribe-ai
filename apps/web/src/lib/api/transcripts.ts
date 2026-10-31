@@ -24,6 +24,7 @@ export interface Transcript {
 	language: string | null;
 	requested_language: string | null;
 	model: string;
+	error?: string | null;
 	created_at: string;
 	completed_at?: string;
 }
@@ -51,6 +52,18 @@ export async function listTranscripts(params: ListParams = {}): Promise<Transcri
 	if (params.q) search.set('q', params.q);
 	const qs = search.toString();
 	return api<TranscriptList>(`/transcripts${qs ? `?${qs}` : ''}`);
+}
+
+export async function cancelTranscript(id: string): Promise<void> {
+	await api<void>(`/transcripts/${id}/cancel`, { method: 'POST' });
+}
+
+export async function retryTranscript(id: string): Promise<void> {
+	await api<void>(`/transcripts/${id}/retry`, { method: 'POST' });
+}
+
+export async function getTranscript(id: string): Promise<{ transcript: Transcript }> {
+	return api<{ transcript: Transcript }>(`/transcripts/${id}`);
 }
 
 export interface UploadOptions {

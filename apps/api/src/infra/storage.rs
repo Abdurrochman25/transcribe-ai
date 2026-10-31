@@ -94,6 +94,32 @@ impl Storage {
         Ok(())
     }
 
+    /// Unduh object dari storage ke file lokal (worker transkripsi).
+    pub async fn get_file(&self, key: &str, dest: &std::path::Path) -> Result<u64> {
+        use futures::StreamExt;
+        use tokio::io::AsyncWriteExt;
+
+        let result = self
+            .inner
+            .get(&Path::from(key))
+            .await
+            .map_err(|e| anyhow::anyhow!("get object {key} gagal: {e:?}"))?;
+
+        let mut file = tokio::fs::File::create(dest)
+            .await
+            .with_context(|| format!("buat file {}", dest.display()))?;
+        let mut written: u64 = 0;
+
+        let mut stream = result.into_stream();
+        while let Some(chunk) = stream.next().await {
+            let bytes = chunk.context("stream object terputus")?;
+            file.write_all(&bytes).await?;
+            written += bytes.len() as u64;
+        }
+        file.flush().await?;
+        Ok(written)
+    }
+
     pub async fn delete(&self, key: &str) -> Result<()> {
         self.inner.delete(&Path::from(key)).await?;
         Ok(())

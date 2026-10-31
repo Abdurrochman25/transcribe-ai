@@ -44,13 +44,25 @@ async fn main() -> Result<()> {
         .context("inisialisasi object storage gagal")?;
     let upload_limiter =
         transcribe_api::middleware::rate_limit::RateLimiter::new(20, Duration::from_secs(3600));
+    let groq = transcribe_api::infra::groq::GroqClient::new(
+        cfg.groq_api_key.clone().unwrap_or_default(),
+        cfg.groq_base_url.clone(),
+        cfg.groq_max_retries,
+        cfg.groq_retry_base_ms,
+    )
+    .context("inisialisasi Groq client gagal")?;
 
     let state = AppState {
         db,
         cfg: Arc::new(cfg),
         storage,
         upload_limiter,
+        groq,
+        sse: transcribe_api::infra::sse::SseHub::new(),
     };
+
+    // Worker transkripsi (skip bila GROQ_API_KEY kosong — supervisor yang memutuskan).
+    tokio::spawn(transcribe_api::workers::supervisor::run(state.clone()));
     let listener = tokio::net::TcpListener::bind(("0.0.0.0", port))
         .await
         .with_context(|| format!("gagal bind port {port}"))?;

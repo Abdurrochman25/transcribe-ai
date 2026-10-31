@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { listTranscripts, type Transcript } from '../../../lib/api/transcripts';
+	import { listTranscripts, cancelTranscript, retryTranscript, type Transcript } from '../../../lib/api/transcripts';
+	import { subscribeJob, type JobHandle } from '../../../lib/api/sse';
 	import { auth } from '../../../lib/stores/auth.svelte';
 	import { formatBytes, formatDuration, formatRelative, STATUS_LABEL } from '../../../lib/utils/format';
 
@@ -8,6 +9,12 @@
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 	let search = $state('');
+
+	// Overlay progres live (SSE) untuk item aktif.
+	let live = $state<Record<string, { status: string; progress: number }>>({});
+	const handles = new Map<string, JobHandle>();
+
+	const ACTIVE = new Set(['uploaded', 'queued', 'validating', 'chunking', 'transcribing', 'processing']);
 
 	const statusClass = (status: string) =>
 		({
@@ -18,6 +25,13 @@
 			uploaded: 'bg-surface-2 text-muted'
 		})[status] ?? 'bg-accent-soft text-accent';
 
+	function displayStatus(t: Transcript) {
+		return live[t.id]?.status ?? t.status;
+	}
+	function displayProgress(t: Transcript) {
+		return live[t.id]?.progress ?? t.progress;
+	}
+
 	async function load() {
 		loading = true;
 		error = null;
@@ -25,10 +39,52 @@
 			const list = await listTranscripts(search ? { q: search } : {});
 			items = list.items;
 			total = list.total;
+			watchActive();
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Gagal memuat riwayat.';
 		} finally {
 			loading = false;
+		}
+	}
+
+	/** Subscribe SSE untuk item aktif; final → muat ulang daftar (docs/02 §6). */
+	function watchActive() {
+		for (const t of items) {
+			const active = ACTIVE.has(t.status) || ACTIVE.has(live[t.id]?.status ?? '');
+			if (active && !handles.has(t.id)) {
+				live[t.id] = { status: t.status, progress: t.progress };
+				handles.set(
+					t.id,
+					subscribeJob(
+						t.id,
+						(ev) => {
+							if (ev.status) live[t.id] = { status: ev.status, progress: ev.progress ?? 0 };
+						},
+						() => {
+							handles.delete(t.id);
+							load(); // final → segarkan daftar
+						}
+					)
+				);
+			}
+		}
+	}
+
+	async function onCancel(id: string) {
+		try {
+			await cancelTranscript(id);
+			load();
+		} catch (e) {
+			error = e instanceof Error ? e.message : 'Gagal membatalkan.';
+		}
+	}
+
+	async function onRetry(id: string) {
+		try {
+			await retryTranscript(id);
+			load();
+		} catch (e) {
+			error = e instanceof Error ? e.message : 'Gagal mengulang job.';
 		}
 	}
 
@@ -106,20 +162,38 @@
 									{t.source_filename} · {formatBytes(t.size_bytes)}
 									{#if t.duration_seconds}· {formatDuration(t.duration_seconds)}{/if}
 									· {formatRelative(t.created_at)}
+									{#if t.language}· 🌐 {t.language}{/if}
 								</p>
 							</div>
 							<div class="flex items-center gap-2">
-								<span class="rounded-full px-3 py-1 text-xs font-medium {statusClass(t.status)}">
-									{STATUS_LABEL[t.status] ?? t.status}
+								<span class="rounded-full px-3 py-1 text-xs font-medium {statusClass(displayStatus(t))}">
+									{STATUS_LABEL[displayStatus(t)] ?? displayStatus(t)}
 								</span>
-								<!-- TODO(fase 4): link ke editor /t/{t.id} -->
-								<span class="text-muted" aria-hidden="true">⋯</span>
+								{#if ACTIVE.has(displayStatus(t))}
+									<button
+										type="button"
+										onclick={() => onCancel(t.id)}
+										class="rounded-lg border border-line px-3 py-1 text-xs font-medium text-muted transition-colors hover:bg-surface-2"
+									>
+										Batalkan
+									</button>
+								{:else if displayStatus(t) === 'failed'}
+									<button
+										type="button"
+										onclick={() => onRetry(t.id)}
+										class="rounded-lg border border-warning/40 px-3 py-1 text-xs font-medium text-warning transition-colors hover:bg-warning/10"
+									>
+										↻ Ulangi
+									</button>
+								{/if}
 							</div>
 						</div>
-						{#if t.status !== 'completed' && t.status !== 'failed' && t.status !== 'cancelled' && t.progress > 0}
-							<div class="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
-								<div class="h-full rounded-full bg-accent" style="width: {t.progress}%"></div>
+						{#if ACTIVE.has(displayStatus(t)) && displayProgress(t) > 0}
+							<div class="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-surface-2" aria-live="polite">
+								<div class="h-full rounded-full bg-accent transition-[width] duration-300" style="width: {displayProgress(t)}%"></div>
 							</div>
+						{:else if t.error}
+							<p class="mt-2 text-xs text-danger">{t.error}</p>
 						{/if}
 					</li>
 				{/each}

@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { uploadTranscript, type Transcript } from '../../../lib/api/transcripts';
+	import { subscribeJob, type JobEvent } from '../../../lib/api/sse';
 	import { ApiError } from '../../../lib/api/types';
+	import { formatDuration } from '../../../lib/utils/format';
 
 	const ALLOWED_EXT = ['mp3', 'wav', 'm4a', 'mp4', 'ogg', 'oga', 'opus', 'flac', 'webm'];
 	const MAX_BYTES = 200 * 1024 * 1024;
@@ -14,12 +16,24 @@
 
 	let dragging = $state(false);
 	let uploading = $state(false);
-	let progress = $state(0);
+	let uploadProgress = $state(0);
 	let error = $state<string | null>(null);
 	let done = $state<Transcript | null>(null);
 
+	// Progres job (SSE) setelah upload diterima.
+	let jobEvent = $state<JobEvent | null>(null);
+	let jobDone = $state(false);
+	let handle = $state<ReturnType<typeof subscribeJob> | null>(null);
+
 	const fileLabel = $derived(
 		file ? `${file.name} · ${(file.size / 1024 / 1024).toFixed(1)} MB` : null
+	);
+	const jobStatusText = $derived(
+		jobDone
+			? 'Selesai 🎉'
+			: jobEvent?.message ??
+				({ validating: 'Memeriksa file…', chunking: 'Memotong audio…', transcribing: 'Mentranskripsi…', processing: 'Memfinalisasi…', queued: 'Menunggu antrean…' })[jobEvent?.status ?? 'queued'] ??
+				'Memproses…'
 	);
 
 	function pick(f: File | undefined | null) {
@@ -54,7 +68,7 @@
 		if (!file || uploading) return;
 		error = null;
 		uploading = true;
-		progress = 0;
+		uploadProgress = 0;
 		try {
 			done = await uploadTranscript({
 				file,
@@ -62,8 +76,17 @@
 				language: language || undefined,
 				model,
 				prompt: prompt.trim() || undefined,
-				onProgress: (f) => (progress = f)
+				onProgress: (f) => (uploadProgress = f)
 			});
+			// Pantau job via SSE sampai final (docs/02 §6).
+			handle = subscribeJob(
+				done.id,
+				(ev) => (jobEvent = ev),
+				() => {
+					jobDone = true;
+					handle?.stop();
+				}
+			);
 		} catch (err) {
 			if (err instanceof ApiError) {
 				const detail = err.details?.map((d) => `${d.field}: ${d.issue}`).join(' · ');
@@ -77,11 +100,14 @@
 	}
 
 	function reset() {
+		handle?.stop();
 		file = null;
 		title = '';
 		prompt = '';
-		progress = 0;
+		uploadProgress = 0;
 		done = null;
+		jobEvent = null;
+		jobDone = false;
 	}
 </script>
 
@@ -92,19 +118,61 @@
 	</header>
 
 	{#if done}
-		<!-- Sukses -->
-		<div class="rounded-xl border border-success/30 bg-success/5 p-8 text-center">
-			<div class="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-success/15 text-2xl">✅</div>
+		<!-- Sukses upload → pantau job live -->
+		<div class="rounded-xl border border-line bg-surface p-8 text-center shadow-sm">
+			<div
+				class="mx-auto mb-3 flex size-12 items-center justify-center rounded-full text-2xl {jobDone
+					? 'bg-success/15'
+					: 'bg-accent-soft'}"
+				aria-hidden="true"
+			>
+				{jobDone ? '✅' : '⏳'}
+			</div>
 			<h2 class="text-lg font-semibold">{done.title}</h2>
-			<p class="mt-1 text-sm text-muted">
-				Terkirim ke antrean (status: {done.status}). Transkripsi berjalan di Fase 3 — riwayat sudah
-				tercatat di dashboard.
-			</p>
+
+			{#if !jobDone}
+				<p class="mt-1 text-sm text-muted" aria-live="polite">{jobStatusText}</p>
+				<div class="mx-auto mt-4 max-w-sm">
+					<div class="mb-1 flex justify-between text-xs text-muted">
+						<span>Progres transkripsi</span>
+						<span class="font-mono">{jobEvent?.progress ?? 0}%</span>
+					</div>
+					<div class="h-2.5 w-full overflow-hidden rounded-full bg-surface-2">
+						<div
+							class="h-full rounded-full bg-accent transition-[width] duration-300"
+							style="width: {jobEvent?.progress ?? 0}%"
+						></div>
+					</div>
+				</div>
+				<p class="mt-3 text-xs text-muted">
+					Kamu bisa meninggalkan halaman ini — progres berlanjut di dashboard.
+				</p>
+			{:else if jobEvent?.type === 'completed'}
+				<p class="mt-1 text-sm text-success">
+					Transkripsi selesai{jobEvent?.language ? ` (bahasa: ${jobEvent.language})` : ''}
+					{done.duration_seconds ? ` · ${formatDuration(done.duration_seconds)}` : ''}
+				</p>
+				<p class="mt-2 text-sm text-muted">
+					Editor transcript &amp; ekspor dibangun di Fase 4 — hasil sudah bisa dilihat di dashboard.
+				</p>
+			{:else}
+				<p class="mt-1 text-sm text-danger">
+					{jobEvent?.message || 'Job berhenti sebelum selesai.'}
+				</p>
+			{/if}
+
 			<div class="mt-5 flex justify-center gap-3">
-				<a href="/dashboard" class="rounded-lg bg-accent px-5 py-2.5 font-medium text-white transition-colors hover:bg-accent-hover">
+				<a
+					href="/dashboard"
+					class="rounded-lg bg-accent px-5 py-2.5 font-medium text-white transition-colors hover:bg-accent-hover"
+				>
 					Lihat dashboard
 				</a>
-				<button type="button" onclick={reset} class="rounded-lg border border-line bg-surface px-5 py-2.5 font-medium transition-colors hover:bg-surface-2">
+				<button
+					type="button"
+					onclick={reset}
+					class="rounded-lg border border-line bg-surface px-5 py-2.5 font-medium transition-colors hover:bg-surface-2"
+				>
 					Upload lagi
 				</button>
 			</div>
@@ -193,10 +261,10 @@
 				<div aria-live="polite">
 					<div class="mb-1 flex justify-between text-sm">
 						<span>Mengunggah…</span>
-						<span class="font-mono">{Math.round(progress * 100)}%</span>
+						<span class="font-mono">{Math.round(uploadProgress * 100)}%</span>
 					</div>
 					<div class="h-2.5 w-full overflow-hidden rounded-full bg-surface-2">
-						<div class="h-full rounded-full bg-accent transition-[width] duration-200" style="width: {progress * 100}%"></div>
+						<div class="h-full rounded-full bg-accent transition-[width] duration-200" style="width: {uploadProgress * 100}%"></div>
 					</div>
 				</div>
 			{/if}
