@@ -51,6 +51,9 @@ jobs:
       # - name: SQLx prepare check
       #   run: cargo sqlx prepare --check
 
+      - name: Install ffmpeg (ffprobe untuk test upload)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+
       - name: Test
         run: cargo test
 
