@@ -73,6 +73,19 @@ cd apps/web
 npm install && npm run dev
 ```
 
+**Alternatif ringan: Podman (tanpa Docker Desktop)**
+```powershell
+# sekali saja: winget install RedHat.Podman Docker.DockerCompose
+podman machine init --memory 2048 --cpus 2 --rootful   # sekali
+podman machine start                                   # tiap sesi kerja
+podman compose up -d postgres minio minio-init         # service yang dibutuhkan saja
+# api & web tetap native (iterasi cepat):
+#   apps/api  → cargo run   ·   apps/web → npm run dev
+podman machine stop                                    # hemat RAM saat selesai
+```
+Catatan: di beberapa jaringan korporat image `minio/*` diblokir registry —
+untuk dev lokal cukup `postgres` (MinIO mulai dipakai Fase 2; solusi native `minio.exe` tersedia).
+
 **Verifikasi kualitas (sama dengan CI):**
 ```bash
 cd apps/api  && cargo fmt --all -- --check && cargo clippy --all-targets -- -D warnings && cargo test
