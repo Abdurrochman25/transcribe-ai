@@ -20,8 +20,8 @@ pub struct FieldError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
-    #[error("autentikasi diperlukan")]
-    Unauthenticated,
+    #[error("{0}")]
+    Unauthenticated(&'static str),
     #[error("akses ditolak")]
     Forbidden,
     #[error("resource tidak ditemukan")]
@@ -42,10 +42,10 @@ impl AppError {
     /// (status, code, message-publik, details)
     fn parts(&self) -> (StatusCode, &'static str, String, Option<Vec<FieldError>>) {
         match self {
-            AppError::Unauthenticated => (
+            AppError::Unauthenticated(message) => (
                 StatusCode::UNAUTHORIZED,
                 "UNAUTHENTICATED",
-                "Autentikasi diperlukan".into(),
+                (*message).into(),
                 None,
             ),
             AppError::Forbidden => (
@@ -155,7 +155,7 @@ mod tests {
         let v = body_json(res).await;
         assert_eq!(v["error"]["code"], "NOT_FOUND");
 
-        let res = AppError::Unauthenticated.into_response();
+        let res = AppError::Unauthenticated("Autentikasi diperlukan").into_response();
         assert_eq!(res.status(), StatusCode::UNAUTHORIZED);
         assert_eq!(body_json(res).await["error"]["code"], "UNAUTHENTICATED");
 

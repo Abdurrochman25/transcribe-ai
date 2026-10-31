@@ -49,10 +49,13 @@ async fn main() -> Result<()> {
         .with_context(|| format!("gagal bind port {port}"))?;
 
     tracing::info!("listening on http://0.0.0.0:{port}");
-    axum::serve(listener, app(state))
-        .with_graceful_shutdown(shutdown_signal())
-        .await
-        .context("server berhenti dengan error")?;
+    axum::serve(
+        listener,
+        app(state).into_make_service_with_connect_info::<std::net::SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown_signal())
+    .await
+    .context("server berhenti dengan error")?;
     Ok(())
 }
 

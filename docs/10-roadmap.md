@@ -11,9 +11,9 @@ Estimasi untuk 1 developer full-time (bisa dipercepat kalau paralel). Setiap fas
 - **Demo:** `docker compose up` → `/health` hijau, hello-world auth endpoint.
 
 ## Fase 1 — Auth & User (minggu 2)
-- [ ] Register/login/refresh/logout/me + Argon2 + JWT + rotasi refresh
-- [ ] Middleware auth + rate limit + error 401/403 yang benar
-- [ ] Frontend: halaman login/register, session store, guard route `(app)`
+- [x] Register/login/refresh/logout/me + Argon2 + JWT + rotasi refresh
+- [x] Middleware auth + rate limit + error 401/403 yang benar
+- [x] Frontend: halaman login/register, session store, guard route `(app)`
 - **Demo:** daftar → masuk → dashboard kosong (protected).
 
 ## Fase 2 — Upload & Storage (minggu 3)

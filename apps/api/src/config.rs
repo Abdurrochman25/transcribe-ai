@@ -21,6 +21,10 @@ pub struct Config {
     pub groq_base_url: String,
     pub cors_allowed_origins: Vec<String>,
     pub log_format: LogFormat,
+    pub access_token_ttl_secs: i64,
+    pub refresh_token_ttl_secs: i64,
+    /// Set true di produksi (HTTPS) agar cookie refresh hanya dikirim via https.
+    pub cookie_secure: bool,
 }
 
 impl Config {
@@ -56,6 +60,9 @@ impl Config {
                 Ok("json") => LogFormat::Json,
                 _ => LogFormat::Text,
             },
+            access_token_ttl_secs: env_parse("ACCESS_TOKEN_TTL_SECS", 900)?,
+            refresh_token_ttl_secs: env_parse("REFRESH_TOKEN_TTL_SECS", 2_592_000)?,
+            cookie_secure: env_parse("COOKIE_SECURE", false)?,
         };
         Ok(config)
     }

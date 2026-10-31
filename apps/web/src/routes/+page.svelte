@@ -17,7 +17,13 @@
 			>
 				GitHub
 			</a>
-			<span class="rounded-full bg-surface-2 px-3 py-1 font-mono text-xs">Fase 0</span>
+			<a href="/login" class="transition-colors hover:text-text">Masuk</a>
+			<a
+				href="/register"
+				class="rounded-full bg-accent px-3 py-1 font-medium text-white transition-colors hover:bg-accent-hover"
+			>
+				Daftar
+			</a>
 		</nav>
 	</header>
 
@@ -51,20 +57,17 @@
 		</p>
 
 		<div class="flex flex-wrap items-center justify-center gap-3">
-			<!-- TODO(fase 1): arahkan ke /login -->
-			<button
-				type="button"
-				disabled
-				title="Autentikasi dibangun di Fase 1"
-				class="cursor-not-allowed rounded-lg bg-accent px-6 py-3 font-medium text-white opacity-50"
-			>
-				Mulai sekarang
-			</button>
 			<a
-				href="https://github.com/Abdurrochman25/transcribe-ai/tree/main/docs"
+				href="/register"
+				class="rounded-lg bg-accent px-6 py-3 font-medium text-white transition-colors hover:bg-accent-hover"
+			>
+				Mulai gratis
+			</a>
+			<a
+				href="/login"
 				class="rounded-lg border border-line bg-surface px-6 py-3 font-medium transition-colors hover:bg-surface-2"
 			>
-				Lihat dokumentasi
+				Masuk
 			</a>
 		</div>
 

@@ -3,9 +3,12 @@
 //! request-id → CORS → tracing → handler — docs/02-architecture.md.
 
 pub mod config;
+pub mod domain;
 pub mod error;
 pub mod middleware;
+pub mod repositories;
 pub mod routes;
+pub mod services;
 pub mod state;
 
 use axum::{
@@ -46,6 +49,7 @@ fn build_cors(state: &state::AppState) -> CorsLayer {
 
     CorsLayer::new()
         .allow_origin(AllowOrigin::list(origins))
+        .allow_credentials(true)
         .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
         .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE])
 }
