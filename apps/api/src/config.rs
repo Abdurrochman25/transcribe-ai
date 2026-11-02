@@ -25,6 +25,8 @@ pub struct Config {
     pub refresh_token_ttl_secs: i64,
     /// Set true di produksi (HTTPS) agar cookie refresh hanya dikirim via https.
     pub cookie_secure: bool,
+    /// Kode undangan beta; None = pendaftaran terbuka (docs/10 fase 5).
+    pub beta_invite_code: Option<String>,
     // ===== upload & storage (fase 2) =====
     /// "s3" (S3/MinIO/R2) atau "local" (filesystem — dev tanpa MinIO).
     pub storage_driver: String,
@@ -84,6 +86,7 @@ impl Config {
             access_token_ttl_secs: env_parse("ACCESS_TOKEN_TTL_SECS", 900)?,
             refresh_token_ttl_secs: env_parse("REFRESH_TOKEN_TTL_SECS", 2_592_000)?,
             cookie_secure: env_parse("COOKIE_SECURE", false)?,
+            beta_invite_code: env_opt("BETA_INVITE_CODE").filter(|s| !s.is_empty()),
             // ===== upload & storage =====
             storage_driver: resolve_storage_driver(),
             s3_endpoint: env_opt("S3_ENDPOINT"),
@@ -104,6 +107,41 @@ impl Config {
             audio_retention_days: env_parse("AUDIO_RETENTION_DAYS", 30)?,
         };
         Ok(config)
+    }
+
+    /// Konfigurasi standar untuk unit test in-crate (tanpa I/O env).
+    #[cfg(test)]
+    pub fn default_for_test() -> Self {
+        Self {
+            port: 0,
+            database_url: String::new(),
+            jwt_secret: "test-secret-32-byte-integration-aaaa!".into(),
+            groq_api_key: Some("test-key".into()),
+            groq_base_url: "http://127.0.0.1:9".into(),
+            cors_allowed_origins: vec![],
+            log_format: LogFormat::Text,
+            access_token_ttl_secs: 900,
+            refresh_token_ttl_secs: 2_592_000,
+            cookie_secure: false,
+            beta_invite_code: None,
+            storage_driver: "local".into(),
+            s3_endpoint: None,
+            s3_bucket: None,
+            s3_access_key: None,
+            s3_secret_key: None,
+            s3_region: None,
+            storage_local_root: String::new(),
+            max_upload_bytes: 1024 * 1024,
+            ffprobe_path: "ffprobe".into(),
+            ffmpeg_path: "ffmpeg".into(),
+            groq_max_retries: 3,
+            groq_retry_base_ms: 1,
+            groq_chunk_bytes: 1024 * 1024,
+            groq_chunk_seconds: 600,
+            worker_concurrency: 1,
+            worker_poll_interval_ms: 50,
+            audio_retention_days: 30,
+        }
     }
 }
 

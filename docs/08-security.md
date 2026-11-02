@@ -51,11 +51,11 @@
 
 ## 6. Checklist Rilis (MVP)
 
-- [ ] Semua endpoint mutasi butuh auth & scoped user
-- [ ] Rate limit aktif di auth + upload
-- [ ] Magic-bytes validation + size limit teruji (file 300 MB ditolak 413)
-- [ ] Refresh rotation + reuse detection teruji
-- [ ] JWT_SECRET ≥ 32 byte random, di-rotate-able
-- [ ] `cargo audit` + `npm audit` bersih (tanpa critical)
-- [ ] CSP + HSTS aktif di deployment
-- [ ] Prosedur insiden: cara revoke semua token (rotate JWT_SECRET) terdokumentasi
+- [x] Semua endpoint mutasi butuh auth & scoped user
+- [x] Rate limit aktif di auth + upload
+- [x] Magic-bytes validation + size limit teruji (file 300 MB ditolak 413)
+- [x] Refresh rotation + reuse detection teruji
+- [x] JWT_SECRET ≥ 32 byte random, di-rotate-able (validasi fail-fast + runbook insiden §5a)
+- [x] `cargo audit` + `npm audit` bersih (Rust: 0 aktif — 1 ignore terdokumentasi `.cargo/audit.toml` untuk entri stale; web: hanya 4 low, gate CI critical)
+- [x] CSP + HSTS aktif di deployment (CSP prod di `hooks.server.ts`; HSTS otomatis saat `COOKIE_SECURE=true` + rekomendasi Cloudflare)
+- [x] Prosedur insiden: cara revoke semua token (rotate JWT_SECRET) terdokumentasi — `docs/11-deploy-runbook.md §5`

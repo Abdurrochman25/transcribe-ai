@@ -1,0 +1,12 @@
+# Konfigurasi cargo-audit (dipakai CI job "Security audit").
+#
+# RUSTSEC-2023-0071 (rsa 0.9.x — "Marvin Attack", timing side-channel RSA):
+# `rsa` hanya entri STALE di Cargo.lock, ditarik `sqlx-mysql` yang TIDAK masuk
+# graf dependensi kita (driver yang dipakai hanya Postgres). Diverifikasi via
+# `cargo tree -i rsa --target all` → "nothing to print" (tidak dikompilasi ke
+# binary). Tidak ada versi fixed upstream.
+#
+# TODO: hapus ignore ini bila `cargo tree -i rsa` menemukan dependen nyata
+# (mis. setelah menambah driver sqlx lain).
+[advisories]
+ignore = ["RUSTSEC-2023-0071"]

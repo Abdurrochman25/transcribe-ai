@@ -1,7 +1,13 @@
 import { api, setAccessToken } from './client';
 import type { AuthResponse, User } from './types';
 
-export async function register(input: { name: string; email: string; password: string }) {
+export async function register(input: {
+	name: string;
+	email: string;
+	password: string;
+	/** Wajib saat beta tertutup (BETA_INVITE_CODE aktif di server). */
+	invite_code?: string;
+}) {
 	const body = await api<AuthResponse>('/auth/register', {
 		method: 'POST',
 		body: input,

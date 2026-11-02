@@ -57,6 +57,31 @@ jobs:
       - name: Test
         run: cargo test
 
+  audit:
+    name: Security audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+
+      - name: cargo audit (Rust, advisories)
+        working-directory: apps/api
+        run: cargo audit --deny warnings
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: npm audit (web, critical saja)
+        working-directory: apps/web
+        run: npm audit --audit-level=critical
+
   web:
     name: Web (SvelteKit)
     runs-on: ubuntu-latest

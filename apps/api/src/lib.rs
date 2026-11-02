@@ -35,6 +35,10 @@ pub fn app(state: state::AppState) -> Router {
         .layer(TraceLayer::new_for_http())
         .layer(cors)
         .layer(axum_middleware::from_fn(middleware::request_id::request_id))
+        .layer(axum_middleware::from_fn_with_state(
+            state.clone(),
+            middleware::security_headers::security_headers,
+        ))
         .with_state(state)
 }
 

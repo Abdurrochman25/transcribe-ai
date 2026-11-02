@@ -47,6 +47,8 @@ struct RegisterBody {
     email: String,
     password: String,
     name: String,
+    #[serde(default)]
+    invite_code: Option<String>,
 }
 
 async fn register(
@@ -61,6 +63,7 @@ async fn register(
             email: body.email,
             password: body.password,
             name: body.name,
+            invite_code: body.invite_code,
         },
         user_agent(&headers),
         client_ip(&headers),

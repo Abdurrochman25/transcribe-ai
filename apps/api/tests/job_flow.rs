@@ -39,6 +39,7 @@ fn test_config(groq_base: String) -> Config {
         access_token_ttl_secs: 900,
         refresh_token_ttl_secs: 2_592_000,
         cookie_secure: false,
+        beta_invite_code: None,
         storage_driver: "local".into(),
         s3_endpoint: None,
         s3_bucket: None,

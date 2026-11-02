@@ -6,6 +6,7 @@
 	let name = $state('');
 	let email = $state('');
 	let password = $state('');
+	let inviteCode = $state('');
 	let error = $state<string | null>(null);
 	let fieldErrors = $state<Record<string, string>>({});
 	let submitting = $state(false);
@@ -16,7 +17,7 @@
 		fieldErrors = {};
 		submitting = true;
 		try {
-			await auth.register(name.trim(), email.trim(), password);
+			await auth.register(name.trim(), email.trim(), password, inviteCode);
 			await goto('/dashboard');
 		} catch (err) {
 			if (err instanceof ApiError) {
@@ -91,6 +92,23 @@
 			/>
 			{#if fieldErrors.password}
 				<p class="mt-1 text-xs text-danger">{fieldErrors.password}</p>
+			{/if}
+		</div>
+
+		<div>
+			<label for="invite_code" class="mb-1 block text-sm font-medium">
+				Kode undangan <span class="font-normal text-muted">(beta — opsional)</span>
+			</label>
+			<input
+				id="invite_code"
+				type="text"
+				bind:value={inviteCode}
+				autocomplete="off"
+				class="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm outline-hidden focus:border-accent focus:ring-2 focus:ring-accent/30"
+				placeholder="Kosongkan bila tidak punya"
+			/>
+			{#if fieldErrors.invite_code}
+				<p class="mt-1 text-xs text-danger">{fieldErrors.invite_code}</p>
 			{/if}
 		</div>
 

@@ -31,8 +31,13 @@ class AuthStore {
 		this.user = await authApi.login({ email, password });
 	}
 
-	async register(name: string, email: string, password: string) {
-		this.user = await authApi.register({ name, email, password });
+	async register(name: string, email: string, password: string, inviteCode?: string) {
+		this.user = await authApi.register({
+			name,
+			email,
+			password,
+			invite_code: inviteCode?.trim() || undefined
+		});
 	}
 
 	async logout() {

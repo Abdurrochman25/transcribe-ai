@@ -94,6 +94,18 @@
 	</main>
 
 	<footer class="border-t border-line py-6 text-center text-sm text-muted">
-		Rust (Axum) + SvelteKit + Groq Whisper · MIT License
+		<div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+			<a href="/privacy" class="transition-colors hover:text-text">Kebijakan Privasi</a>
+			<span aria-hidden="true">·</span>
+			<a href="/tos" class="transition-colors hover:text-text">Syarat Layanan</a>
+			<span aria-hidden="true">·</span>
+			<a
+				href="https://github.com/Abdurrochman25/transcribe-ai"
+				class="transition-colors hover:text-text"
+			>
+				GitHub
+			</a>
+		</div>
+		<p class="mt-2">Rust (Axum) + SvelteKit + Groq Whisper · MIT License</p>
 	</footer>
 </div>

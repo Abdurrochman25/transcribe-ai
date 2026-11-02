@@ -39,11 +39,12 @@ Estimasi untuk 1 developer full-time (bisa dipercepat kalau paralel). Setiap fas
 - **Demo:** alur penuh upload→edit→unduh SRT. **← MVP FEATURE COMPLETE**
 
 ## Fase 5 — Hardening Rilis (minggu 8)
-- [ ] Security checklist (dok 08) penuh; cargo audit; CSP; HSTS
-- [ ] Deploy staging (Fly/VPS + R2) + domain + Cloudflare
-- [ ] UAT kecil (5 pengguna), perbaikan UX dari feedback
-- [ ] Landing page publik + privacy policy + ToS
-- [ ] Beta publik (invite code) + monitoring & alert aktif
+- [x] Security checklist (dok 08) penuh; cargo audit (job CI `audit`); CSP (hooks prod-only); HSTS (COOKIE_SECURE=true)
+- [x] Beta tertutup: `BETA_INVITE_CODE` (opsional) + field kode undangan di register
+- [x] Landing page publik + privacy policy + ToS (`/privacy`, `/tos`)
+- [ ] Deploy staging (Fly + R2) + domain + Cloudflare — **artefak siap** (`fly.toml` x2, `.env.example`, runbook `docs/11`), eksekusi menunggu akun cloud pemilik
+- [ ] UAT kecil (5 pengguna), perbaikan UX dari feedback — menunggu deploy
+- [ ] Beta publik + monitoring & alert aktif (ping eksternal `/ready`) — runbook §4 siap, menunggu deploy
 - **Milestone: Rilis Beta 🚀**
 
 ## Fase 6 — v1.1 (minggu 9–12, post-beta)

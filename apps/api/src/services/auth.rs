@@ -40,6 +40,9 @@ pub struct RegisterInput {
     pub email: String,
     pub password: String,
     pub name: String,
+    /// Wajib bila BETA_INVITE_CODE di-set (beta tertutup — docs/10 fase 5).
+    #[serde(default)]
+    pub invite_code: Option<String>,
 }
 
 pub struct AuthTokens {
@@ -72,6 +75,7 @@ pub async fn register(
     ip: Option<&str>,
 ) -> Result<AuthOutcome, AppError> {
     validate_register(&input)?;
+    validate_invite_code(cfg, input.invite_code.as_deref())?;
 
     // Cek dulu agar pesan 409 jelas; race condition tetap ditangani unique constraint di bawah.
     if repositories::users::find_by_email(db, input.email.trim())
@@ -289,6 +293,33 @@ fn validate_register(input: &RegisterInput) -> Result<(), AppError> {
     }
 }
 
+/// Gate beta tertutup: saat `BETA_INVITE_CODE` di-set, register wajib membawa
+/// kode yang cocok (docs/10 fase 5). Bandingkan digest SHA-256 keduanya agar
+/// panjang/isi kode tidak bocor lewat timing.
+fn validate_invite_code(cfg: &Config, given: Option<&str>) -> Result<(), AppError> {
+    let Some(expected) = cfg.beta_invite_code.as_deref() else {
+        return Ok(()); // beta terbuka — kode tidak diperlukan
+    };
+    let given = given.unwrap_or("");
+    let ok = {
+        let mut h = Sha256::new();
+        h.update(given.as_bytes());
+        let a: [u8; 32] = h.finalize().into();
+        let mut h = Sha256::new();
+        h.update(expected.as_bytes());
+        let b: [u8; 32] = h.finalize().into();
+        a == b
+    };
+    if ok {
+        Ok(())
+    } else {
+        Err(AppError::Validation(vec![FieldError {
+            field: "invite_code".into(),
+            issue: "kode undangan tidak valid".into(),
+        }]))
+    }
+}
+
 fn email_valid(email: &str) -> bool {
     let Some((local, domain)) = email.split_once('@') else {
         return false;
@@ -333,6 +364,37 @@ fn validate_password(password: &str) -> Vec<FieldError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn invite_code_beta() {
+        let mut cfg = crate::config::Config::default_for_test();
+        assert!(
+            validate_invite_code(&cfg, None).is_ok(),
+            "beta terbuka: tanpa kode tetap boleh"
+        );
+
+        cfg.beta_invite_code = Some("BETA-RAHASIA".into());
+        assert!(
+            validate_invite_code(&cfg, None).is_err(),
+            "tanpa kode ditolak"
+        );
+        assert!(
+            validate_invite_code(&cfg, Some("salah")).is_err(),
+            "kode salah ditolak"
+        );
+        assert!(
+            validate_invite_code(&cfg, Some("BETA-RAHASIA")).is_ok(),
+            "kode tepat lolos"
+        );
+        // Pesan error mengarah ke field yang benar (dipakai form register).
+        let err = validate_invite_code(&cfg, Some("x")).unwrap_err();
+        match err {
+            AppError::Validation(details) => {
+                assert_eq!(details[0].field, "invite_code");
+            }
+            other => panic!("harus Validation, dapat {other:?}"),
+        }
+    }
 
     #[test]
     fn validasi_email() {
@@ -396,6 +458,7 @@ mod tests {
             access_token_ttl_secs: 900,
             refresh_token_ttl_secs: 2_592_000,
             cookie_secure: false,
+            beta_invite_code: None,
             storage_driver: "local".into(),
             s3_endpoint: None,
             s3_bucket: None,

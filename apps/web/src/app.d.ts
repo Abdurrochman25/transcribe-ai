@@ -12,6 +12,9 @@ declare global {
 	interface ImportMetaEnv {
 		/** Base URL API, format ".../api/v1" — docs/06-frontend-design.md §3 */
 		readonly PUBLIC_API_URL?: string;
+		/** Ditambahkan Vite — dipakai hooks.server.ts (CSP prod-only). */
+		readonly DEV?: boolean;
+		readonly MODE?: string;
 	}
 }
 
