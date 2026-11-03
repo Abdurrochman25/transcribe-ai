@@ -37,65 +37,69 @@
 	}
 </script>
 
-<div class="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12">
+<div class="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-6 py-12">
 	<div class="mb-8 text-center">
-		<a href="/" class="text-lg font-semibold tracking-tight">
-			<span class="text-accent" aria-hidden="true">◆</span> TranscribeAI
+		<a href="/" class="inline-flex items-center gap-2.5 text-[15px] font-semibold tracking-tight">
+			<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+				<rect x="1" y="5" width="2" height="6" rx="1" fill="currentColor" />
+				<rect x="4.25" y="3" width="2" height="10" rx="1" fill="currentColor" />
+				<rect x="7.5" y="1" width="2" height="14" rx="1" fill="currentColor" />
+				<rect x="10.75" y="4" width="2" height="8" rx="1" fill="currentColor" />
+				<rect x="14" y="6" width="2" height="4" rx="1" fill="currentColor" />
+			</svg>
+			TranscribeAI
 		</a>
-		<h1 class="mt-4 text-2xl font-bold tracking-tight">Masuk ke akunmu</h1>
-		<p class="mt-1 text-sm text-muted">Transkripsi audio berikutnya menunggu.</p>
+		<h1 class="mt-5 text-xl font-semibold tracking-tight">Masuk ke akunmu</h1>
 	</div>
 
-	<form
-		onsubmit={submit}
-		class="space-y-4 rounded-xl border border-line bg-surface p-6 shadow-sm"
-		novalidate
-	>
+	<form onsubmit={submit} class="space-y-4 rounded-[var(--radius-card)] border border-line bg-surface p-6" novalidate>
 		{#if error}
-			<p role="alert" class="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>
+			<p role="alert" class="rounded-[var(--radius-control)] bg-pill-negative-bg px-3 py-2 text-sm text-pill-negative-ink">
+				{error}
+			</p>
 		{/if}
 
 		<div>
-			<label for="email" class="mb-1 block text-sm font-medium">Email</label>
+			<label for="email" class="mb-1.5 block text-sm font-medium">Email</label>
 			<input
 				id="email"
 				type="email"
 				autocomplete="email"
 				bind:value={email}
 				required
-				class="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm outline-hidden focus:border-accent focus:ring-2 focus:ring-accent/30"
+				class="h-10 w-full rounded-[var(--radius-control)] border border-control bg-surface px-3 text-sm outline-hidden placeholder:text-faint focus:border-muted"
 				placeholder="nama@email.com"
 			/>
 			{#if fieldErrors.email}<p class="mt-1 text-xs text-danger">{fieldErrors.email}</p>{/if}
 		</div>
 
 		<div>
-			<label for="password" class="mb-1 block text-sm font-medium">Password</label>
+			<div class="mb-1.5 flex items-baseline justify-between">
+				<label for="password" class="text-sm font-medium">Password</label>
+				<span class="text-xs text-muted">Min. 10 karakter</span>
+			</div>
 			<input
 				id="password"
 				type="password"
 				autocomplete="current-password"
 				bind:value={password}
 				required
-				class="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm outline-hidden focus:border-accent focus:ring-2 focus:ring-accent/30"
-				placeholder="••••••••••"
+				class="h-10 w-full rounded-[var(--radius-control)] border border-control bg-surface px-3 text-sm outline-hidden focus:border-muted"
 			/>
-			{#if fieldErrors.password}
-				<p class="mt-1 text-xs text-danger">{fieldErrors.password}</p>
-			{/if}
+			{#if fieldErrors.password}<p class="mt-1 text-xs text-danger">{fieldErrors.password}</p>{/if}
 		</div>
 
 		<button
 			type="submit"
 			disabled={submitting}
-			class="w-full rounded-lg bg-accent px-4 py-2.5 font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+			class="h-10 w-full rounded-[var(--radius-control)] bg-accent text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
 		>
-			{submitting ? 'Memproses…' : 'Masuk'}
+			{submitting ? 'Memeriksa…' : 'Masuk'}
 		</button>
 	</form>
 
 	<p class="mt-6 text-center text-sm text-muted">
 		Belum punya akun?
-		<a href="/register" class="font-medium text-accent hover:underline">Daftar gratis</a>
+		<a href="/register" class="font-medium text-text hover:underline">Daftar</a>
 	</p>
 </div>

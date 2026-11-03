@@ -1,35 +1,82 @@
 @import 'tailwindcss';
+@import '@fontsource/geist/400.css';
+@import '@fontsource/geist/500.css';
+@import '@fontsource/geist/700.css';
+@import '@fontsource/geist-mono/400.css';
+@import '@fontsource/geist-mono/500.css';
 
 /*
- * Design tokens — lihat docs/07-ui-design.md §2.
- * Dipetakan ke utilities Tailwind via @theme: bg-bg, bg-surface, text-muted, dst.
- * TODO(v1.1): tema gelap (.dark) via CSS variables runtime.
+ * Design tokens — app style "achromatic-ledger" (taste-skill, seed 827662554).
+ * Chrome tinta tanpa warna; SATU hue (--color-data) hanya untuk data:
+ * progress transkripsi live + segment aktif. Angka = Geist Mono (ledger).
+ * Dipetakan ke utilities Tailwind via @theme.
  */
 @theme {
-	--color-bg: #fafafa;
+	/* ground blue-grey "ledger/meter" — wajah produk, satu level dari putih, kroma rendah */
+	--color-bg: #f2f4f7;
 	--color-surface: #ffffff;
-	--color-surface-2: #f4f4f5;
-	--color-text: #18181b;
-	--color-muted: #71717a;
-	--color-line: #e4e4e7;
-	--color-accent: #0d9488;
-	--color-accent-hover: #0f766e;
-	--color-accent-soft: #ccfbf1;
-	--color-success: #16a34a;
-	--color-warning: #d97706;
-	--color-danger: #dc2626;
+	--color-surface-2: #eeeef0;
+	--color-text: #0a0a0a;
+	--color-muted: #6b6b6b;
+	--color-faint: #9a9a9a;
+	--color-line: #e6e6e6;
+	--color-rule: #f0f0f0;
+	--color-control: #d4d4d4;
 
-	--font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-	--font-mono: 'JetBrains Mono', ui-monospace, monospace;
+	/* aksi: primer near-black, sekunder grey pill — bukan warna merek */
+	--color-accent: #141414;
+	--color-accent-hover: #2e2e2e;
+
+	/* satu hue data (chart-1 utama gaya ini) */
+	--color-data: #1d5fbf;
+	--color-data-soft: #1d5fbf14;
+
+	/* pasangan pill pucat: teks gelap se-hue */
+	--color-positive: #2e7d32;
+	--color-pill-positive-bg: #dcfae5;
+	--color-pill-positive-ink: #04250e;
+	--color-warning: #92400e;
+	--color-pill-warning-bg: #fffbeb;
+	--color-pill-warning-ink: #92400e;
+	--color-danger: #c4242a;
+	--color-pill-negative-bg: #ffedea;
+	--color-pill-negative-ink: #831c1e;
+	--color-pill-neutral-bg: #eeeeee;
+	--color-pill-neutral-ink: #3d3d3d;
+
+	--font-sans: 'Geist', system-ui, sans-serif;
+	--font-mono: 'Geist Mono', ui-monospace, monospace;
 }
 
 :root {
 	color-scheme: light;
+	/* radius bimodal gaya ini: kartu 8, kontrol 6 (app-screens §9.4) */
+	--radius-card: 8px;
+	--radius-control: 6px;
+	--radius-chip: 4px;
 }
 
 body {
 	background-color: var(--color-bg);
 	color: var(--color-text);
 	font-family: var(--font-sans);
+	font-size: 14px;
 	-webkit-font-smoothing: antialiased;
 }
+
+/* Ledger: setiap angka tabular; kolom angka rata kanan. */
+.num,
+input[type='range'] {
+	font-variant-numeric: tabular-nums;
+}
+.num {
+	font-family: var(--font-mono);
+}
+
+/* Fokus keyboard terlihat di semua kontrol (app-screens §States). */
+:focus-visible {
+	outline: 2px solid var(--color-text);
+	outline-offset: 2px;
+	border-radius: 2px;
+}
+

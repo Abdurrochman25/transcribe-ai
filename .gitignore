@@ -35,3 +35,6 @@ test-results/
 tmp/
 
 null
+
+# Artefak kerja taste-skill (inspeksi desain)
+.taste-skill/

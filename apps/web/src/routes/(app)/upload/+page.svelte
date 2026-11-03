@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { uploadTranscript, type Transcript } from '../../../lib/api/transcripts';
 	import { subscribeJob, type JobEvent } from '../../../lib/api/sse';
 	import { ApiError } from '../../../lib/api/types';
@@ -30,7 +29,7 @@
 	);
 	const jobStatusText = $derived(
 		jobDone
-			? 'Selesai 🎉'
+			? 'Selesai.'
 			: jobEvent?.message ??
 				({ validating: 'Memeriksa file…', chunking: 'Memotong audio…', transcribing: 'Mentranskripsi…', processing: 'Memfinalisasi…', queued: 'Menunggu antrean…' })[jobEvent?.status ?? 'queued'] ??
 				'Memproses…'
@@ -111,49 +110,40 @@
 	}
 </script>
 
-<div class="mx-auto max-w-2xl px-6">
-	<header class="py-5">
-		<a href="/dashboard" class="text-sm text-muted transition-colors hover:text-text">← Kembali</a>
-		<h1 class="mt-2 text-2xl font-bold tracking-tight">Transkripsi Baru</h1>
-	</header>
+<div class="mx-auto max-w-2xl px-6 py-8">
+	<div class="mb-6">
+		<h1 class="text-2xl font-semibold tracking-tight">Upload audio</h1>
+		<p class="mt-1 text-sm text-muted">
+			{ALLOWED_EXT.map((e) => e.toUpperCase()).join(', ')} · maksimal 200 MB per rekaman.
+		</p>
+	</div>
 
 	{#if done}
-		<!-- Sukses upload → pantau job live -->
-		<div class="rounded-xl border border-line bg-surface p-8 text-center shadow-sm">
-			<div
-				class="mx-auto mb-3 flex size-12 items-center justify-center rounded-full text-2xl {jobDone
-					? 'bg-success/15'
-					: 'bg-accent-soft'}"
-				aria-hidden="true"
-			>
-				{jobDone ? '✅' : '⏳'}
-			</div>
+		<!-- Sukses upload → pantau job live; hue di progres (data), angka mono -->
+		<div class="rounded-[var(--radius-card)] border border-line bg-surface p-8">
 			<h2 class="text-lg font-semibold">{done.title}</h2>
 
 			{#if !jobDone}
 				<p class="mt-1 text-sm text-muted" aria-live="polite">{jobStatusText}</p>
-				<div class="mx-auto mt-4 max-w-sm">
+				<div class="mt-4 max-w-sm">
 					<div class="mb-1 flex justify-between text-xs text-muted">
 						<span>Progres transkripsi</span>
-						<span class="font-mono">{jobEvent?.progress ?? 0}%</span>
+						<span class="num">{jobEvent?.progress ?? 0}%</span>
 					</div>
-					<div class="h-2.5 w-full overflow-hidden rounded-full bg-surface-2">
+					<div class="h-1 w-full overflow-hidden rounded-full bg-line">
 						<div
-							class="h-full rounded-full bg-accent transition-[width] duration-300"
+							class="h-full rounded-full bg-data transition-[width] duration-300"
 							style="width: {jobEvent?.progress ?? 0}%"
 						></div>
 					</div>
 				</div>
 				<p class="mt-3 text-xs text-muted">
-					Kamu bisa meninggalkan halaman ini — progres berlanjut di dashboard.
+					Halaman ini boleh ditinggalkan — progres berlanjut di riwayat.
 				</p>
 			{:else if jobEvent?.type === 'completed'}
-				<p class="mt-1 text-sm text-success">
-					Transkripsi selesai{jobEvent?.language ? ` (bahasa: ${jobEvent.language})` : ''}
-					{done.duration_seconds ? ` · ${formatDuration(done.duration_seconds)}` : ''}
-				</p>
-				<p class="mt-2 text-sm text-muted">
-					Editor transcript &amp; ekspor dibangun di Fase 4 — hasil sudah bisa dilihat di dashboard.
+				<p class="mt-1 text-sm">
+					Transkripsi selesai{jobEvent?.language ? ` · bahasa ${jobEvent.language}` : ''}
+					{done.duration_seconds ? ` · <span class="num">${formatDuration(done.duration_seconds)}</span>` : ''}
 				</p>
 			{:else}
 				<p class="mt-1 text-sm text-danger">
@@ -161,17 +151,17 @@
 				</p>
 			{/if}
 
-			<div class="mt-5 flex justify-center gap-3">
+			<div class="mt-6 flex gap-3">
 				<a
 					href={jobEvent?.type === 'completed' ? `/t/${done.id}` : '/dashboard'}
-					class="rounded-lg bg-accent px-5 py-2.5 font-medium text-white transition-colors hover:bg-accent-hover"
+					class="h-9 rounded-[var(--radius-control)] bg-accent px-4 text-sm font-medium leading-9 text-white transition-colors hover:bg-accent-hover"
 				>
-					{jobEvent?.type === 'completed' ? 'Lihat hasil →' : 'Lihat dashboard'}
+					{jobEvent?.type === 'completed' ? 'Lihat hasil' : 'Lihat riwayat'}
 				</a>
 				<button
 					type="button"
 					onclick={reset}
-					class="rounded-lg border border-line bg-surface px-5 py-2.5 font-medium transition-colors hover:bg-surface-2"
+					class="h-9 rounded-[var(--radius-control)] bg-surface-2 px-4 text-sm font-medium transition-colors hover:bg-line"
 				>
 					Upload lagi
 				</button>
@@ -179,14 +169,14 @@
 		</div>
 	{:else}
 		<form onsubmit={submit} class="space-y-5">
-			<!-- Dropzone -->
+			<!-- Dropzone: slot kosong (garis putus) + mark gelombang -->
 			<div
 				role="button"
 				tabindex="0"
 				aria-label="Pilih atau tarik file audio ke sini"
-				class="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-12 text-center transition-colors {dragging
-					? 'border-accent bg-accent-soft/40'
-					: 'border-line bg-surface hover:border-accent/50'}"
+				class="flex cursor-pointer flex-col items-center justify-center rounded-[var(--radius-card)] border border-dashed px-6 py-12 text-center transition-colors {dragging
+					? 'border-muted bg-surface-2/60'
+					: 'border-control bg-surface hover:border-muted'}"
 				ondragover={(e) => {
 					e.preventDefault();
 					dragging = true;
@@ -198,35 +188,41 @@
 				}}
 				onclick={() => document.getElementById('file-input')?.click()}
 			>
-				<div class="mb-3 text-3xl" aria-hidden="true">🎙️</div>
+				<svg class="mb-3 text-muted" width="24" height="24" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+					<rect x="1" y="5" width="2" height="6" rx="1" fill="currentColor" />
+					<rect x="4.25" y="3" width="2" height="10" rx="1" fill="currentColor" />
+					<rect x="7.5" y="1" width="2" height="14" rx="1" fill="currentColor" />
+					<rect x="10.75" y="4" width="2" height="8" rx="1" fill="currentColor" />
+					<rect x="14" y="6" width="2" height="4" rx="1" fill="currentColor" />
+				</svg>
 				{#if file}
 					<p class="font-medium">{fileLabel}</p>
-					<p class="mt-1 text-xs text-muted">Klik untuk ganti file</p>
+					<p class="mt-1 text-xs text-muted">Klik untuk mengganti file</p>
 				{:else}
 					<p class="font-medium">Tarik &amp; lepas file audio di sini</p>
-					<p class="mt-1 text-sm text-muted">
-						atau klik untuk memilih — {ALLOWED_EXT.join(', ')} · maks 200 MB
-					</p>
+					<p class="mt-1 text-sm text-muted">atau klik untuk memilih dari komputermu</p>
 				{/if}
 				<input id="file-input" type="file" class="sr-only" accept={ALLOWED_EXT.map((e) => '.' + e).join(',')} onchange={onFileInput} />
 			</div>
 
 			{#if error}
-				<p role="alert" class="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>
+				<p role="alert" class="rounded-[var(--radius-control)] bg-pill-negative-bg px-3 py-2 text-sm text-pill-negative-ink">
+					{error}
+				</p>
 			{/if}
 
-			<!-- Opsi -->
-			<div class="space-y-4 rounded-xl border border-line bg-surface p-5">
+			<!-- Opsi: label di atas field, input putih border control -->
+			<div class="space-y-4 rounded-[var(--radius-card)] border border-line bg-surface p-5">
 				<div>
-					<label for="title" class="mb-1 block text-sm font-medium">Judul</label>
+					<label for="title" class="mb-1.5 block text-sm font-medium">Judul</label>
 					<input id="title" type="text" bind:value={title} placeholder="Otomatis dari nama file"
-						class="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm outline-hidden focus:border-accent focus:ring-2 focus:ring-accent/30" />
+						class="h-10 w-full rounded-[var(--radius-control)] border border-control bg-surface px-3 text-sm outline-hidden placeholder:text-faint focus:border-muted" />
 				</div>
 				<div class="grid gap-4 sm:grid-cols-2">
 					<div>
-						<label for="language" class="mb-1 block text-sm font-medium">Bahasa</label>
+						<label for="language" class="mb-1.5 block text-sm font-medium">Bahasa</label>
 						<select id="language" bind:value={language}
-							class="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm outline-hidden focus:border-accent focus:ring-2 focus:ring-accent/30">
+							class="h-10 w-full rounded-[var(--radius-control)] border border-control bg-surface px-3 text-sm outline-hidden focus:border-muted">
 							<option value="">Deteksi otomatis</option>
 							<option value="id">Indonesia</option>
 							<option value="en">Inggris</option>
@@ -240,40 +236,42 @@
 						</select>
 					</div>
 					<div>
-						<label for="model" class="mb-1 block text-sm font-medium">Model</label>
+						<label for="model" class="mb-1.5 block text-sm font-medium">Model</label>
 						<select id="model" bind:value={model}
-							class="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm outline-hidden focus:border-accent focus:ring-2 focus:ring-accent/30">
+							class="h-10 w-full rounded-[var(--radius-control)] border border-control bg-surface px-3 text-sm outline-hidden focus:border-muted">
 							<option value="whisper-large-v3-turbo">whisper-large-v3-turbo (cepat)</option>
 							<option value="whisper-large-v3">whisper-large-v3 (akurat)</option>
 						</select>
 					</div>
 				</div>
 				<div>
-					<label for="prompt" class="mb-1 block text-sm font-medium">Petunjuk AI <span class="font-normal text-muted">(opsional)</span></label>
+					<label for="prompt" class="mb-1.5 block text-sm font-medium">
+						Petunjuk AI <span class="font-normal text-muted">(opsional)</span>
+					</label>
 					<textarea id="prompt" rows="2" bind:value={prompt} maxlength="500"
 						placeholder="Contoh: nama dosen Dr. Rani, istilah: RAG, LLM, fine-tuning"
-						class="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm outline-hidden focus:border-accent focus:ring-2 focus:ring-accent/30"></textarea>
+						class="w-full rounded-[var(--radius-control)] border border-control bg-surface px-3 py-2.5 text-sm outline-hidden placeholder:text-faint focus:border-muted"></textarea>
 				</div>
 			</div>
 
-			<!-- Progress / submit -->
+			<!-- Progres upload: hue data, angka mono -->
 			{#if uploading}
 				<div aria-live="polite">
 					<div class="mb-1 flex justify-between text-sm">
 						<span>Mengunggah…</span>
-						<span class="font-mono">{Math.round(uploadProgress * 100)}%</span>
+						<span class="num text-muted">{Math.round(uploadProgress * 100)}%</span>
 					</div>
-					<div class="h-2.5 w-full overflow-hidden rounded-full bg-surface-2">
-						<div class="h-full rounded-full bg-accent transition-[width] duration-200" style="width: {uploadProgress * 100}%"></div>
+					<div class="h-1 w-full overflow-hidden rounded-full bg-line">
+						<div class="h-full rounded-full bg-data transition-[width] duration-200" style="width: {uploadProgress * 100}%"></div>
 					</div>
 				</div>
 			{/if}
 
-			<div class="flex justify-end gap-3">
-				<a href="/dashboard" class="rounded-lg border border-line bg-surface px-5 py-2.5 font-medium transition-colors hover:bg-surface-2">Batal</a>
+			<div class="flex items-center justify-end gap-4">
+				<a href="/dashboard" class="text-sm text-muted transition-colors hover:text-text">Batal</a>
 				<button type="submit" disabled={!file || uploading}
-					class="rounded-lg bg-accent px-5 py-2.5 font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50">
-					{uploading ? 'Mengunggah…' : '▶ Mulai Transkripsi'}
+					class="h-10 rounded-[var(--radius-control)] bg-accent px-5 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40">
+					{uploading ? 'Mengunggah…' : 'Mulai transkripsi'}
 				</button>
 			</div>
 		</form>

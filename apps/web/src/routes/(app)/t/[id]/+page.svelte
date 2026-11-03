@@ -11,14 +11,9 @@
 		type Transcript
 	} from '../../../../lib/api/transcripts';
 	import { subscribeJob, type JobHandle } from '../../../../lib/api/sse';
-	import {
-		formatBytes,
-		formatDuration,
-		formatRelative,
-		formatTimecode,
-		STATUS_LABEL
-	} from '../../../../lib/utils/format';
+	import { formatBytes, formatDuration, formatRelative, formatTimecode } from '../../../../lib/utils/format';
 	import { safeFilename, toPlainText } from '../../../../lib/utils/export';
+	import { sampleDetail } from '../../../../lib/dev/sample';
 
 	let transcript = $state<Transcript | null>(null);
 	let segments = $state<Segment[]>([]);
@@ -29,14 +24,13 @@
 	let exporting = $state<ExportFormat | null>(null);
 	let handle: JobHandle | null = null;
 
-	const ACTIVE = new Set([
-		'uploaded',
-		'queued',
-		'validating',
-		'chunking',
-		'transcribing',
-		'processing'
-	]);
+	/** DEV-only (?preview&sample): dataset sampel tanpa API. */
+	const sample =
+		import.meta.env.DEV &&
+		new URLSearchParams(window.location.search).has('sample') &&
+		new URLSearchParams(window.location.search).has('preview');
+
+	const ACTIVE = new Set(['uploaded', 'queued', 'validating', 'chunking', 'transcribing', 'processing']);
 
 	// ===== player =====
 	let audioEl = $state<HTMLAudioElement | null>(null);
@@ -58,8 +52,7 @@
 	const fileTitle = $derived(transcript?.title ?? 'transkripsi');
 	const isDone = $derived(transcript?.status === 'completed');
 	const editedCount = $derived(segments.filter((s) => s.edited).length);
-
-	const audioSrc = $derived(transcript && hasAudio ? audioSrcUrl(id, srcNonce) : '');
+	const audioSrc = $derived(transcript && hasAudio && !sample ? audioSrcUrl(id, srcNonce) : '');
 
 	/** Segment aktif = terakhir yang start_ms <= posisi playback. */
 	const activeIdx = $derived.by(() => {
@@ -76,6 +69,14 @@
 		if (!id) return;
 		loading = true;
 		error = null;
+		if (sample) {
+			transcript = sampleDetail.transcript as unknown as Transcript;
+			segments = sampleDetail.segments;
+			hasAudio = false;
+			duration = sampleDetail.transcript.duration_seconds ?? 0;
+			loading = false;
+			return;
+		}
 		try {
 			const detail = await getTranscript(id);
 			transcript = detail.transcript;
@@ -137,7 +138,7 @@
 	async function onAudioError() {
 		if (!audioEl) return;
 		try {
-			await getTranscript(id); // refresh-on-401 memperbarui token di memori
+			await getTranscript(id);
 			srcNonce += 1;
 		} catch {
 			/* biarkan — player hanya nonaktif */
@@ -182,11 +183,14 @@
 		cancelEdit();
 		if (!before || text === before.text.trim() || text === '') return;
 
-		// Optimistic.
 		segments = segments.map((s) => (s.idx === idx ? { ...s, text } : s));
+		if (sample) {
+			segments = segments.map((s) => (s.idx === idx ? { ...s, text, edited: true } : s));
+			return;
+		}
 		try {
 			const detail = await patchTranscript(transcript.id, { segments: [{ idx, text }] });
-			segments = detail.segments; // sinkron hasil server (trim + edited=true)
+			segments = detail.segments;
 		} catch (e) {
 			segments = segments.map((s) => (s.idx === idx && before ? { ...before } : s));
 			error = e instanceof Error ? e.message : 'Gagal menyimpan perubahan.';
@@ -204,6 +208,10 @@
 		const title = titleDraft.trim();
 		editingTitle = false;
 		if (!title || title === transcript.title) return;
+		if (sample) {
+			transcript.title = title;
+			return;
+		}
 		try {
 			const detail = await patchTranscript(transcript.id, { title });
 			if (transcript) transcript.title = detail.transcript.title;
@@ -224,6 +232,7 @@
 
 	async function onExport(fmt: ExportFormat) {
 		if (!transcript || exporting) return;
+		if (sample) return;
 		exporting = fmt;
 		try {
 			await downloadExport(transcript.id, fmt, `${safeFilename(fileTitle)}.${fmt}`);
@@ -254,315 +263,237 @@
 	});
 </script>
 
-<div class="mx-auto max-w-6xl px-6">
-	<header class="flex items-center justify-between py-5">
-		<a href="/dashboard" class="flex items-center gap-2 font-semibold tracking-tight">
-			<span class="text-accent" aria-hidden="true">◆</span>
-			TranscribeAI
-		</a>
-		<a
-			href="/dashboard"
-			class="rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium transition-colors hover:bg-surface-2"
-		>
-			← Dashboard
-		</a>
-	</header>
-
-	<main class="pb-12">
-		{#if loading && !transcript}
-			<div class="space-y-3" aria-label="Memuat">
-				<div class="h-8 w-2/3 animate-pulse rounded-lg bg-surface-2"></div>
-				<div class="h-64 animate-pulse rounded-xl border border-line bg-surface"></div>
-			</div>
-		{:else if error && !transcript}
-			<div class="rounded-xl border border-danger/30 bg-danger/5 p-8 text-center">
-				<p class="font-medium text-danger">{error}</p>
-				<a
-					href="/dashboard"
-					class="mt-4 inline-block rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-hover"
-				>
-					Kembali ke dashboard
-				</a>
-			</div>
-		{:else if transcript}
-			{#if error}
-				<p role="alert" class="mb-4 rounded-lg bg-danger/10 px-4 py-3 text-sm text-danger">{error}</p>
-			{/if}
-
-			<div class="mb-6 flex flex-wrap items-start justify-between gap-3">
-				<div class="min-w-0 flex-1">
-					{#if editingTitle}
-						<input
-							bind:value={titleDraft}
-							onkeydown={(e) => {
-								if (e.key === 'Enter') saveTitle();
-								if (e.key === 'Escape') (editingTitle = false);
-							}}
-							onblur={saveTitle}
-							class="w-full max-w-xl rounded-lg border border-accent bg-surface px-3 py-1.5 text-2xl font-bold tracking-tight outline-hidden focus:ring-2 focus:ring-accent/30"
-							aria-label="Judul transkripsi"
-						/>
-					{:else}
-						<h1 class="flex items-center gap-2 text-2xl font-bold tracking-tight">
-							<span class="truncate">{transcript.title}</span>
-							{#if isDone}
-								<button
-									type="button"
-									onclick={startTitleEdit}
-									class="text-base text-muted transition-colors hover:text-accent"
-									aria-label="Ubah judul"
-								>
-									✎
-								</button>
-							{/if}
-						</h1>
-					{/if}
-					<p class="mt-1 text-sm text-muted">
-						{transcript.source_filename} · {formatBytes(transcript.size_bytes)}
-						{#if transcript.duration_seconds}· {formatDuration(transcript.duration_seconds)}{/if}
-						· {formatRelative(transcript.created_at)}
-						{#if transcript.language}· 🌐 {transcript.language}{/if}
-						· {transcript.model}
-					</p>
-					<p class="mt-1 text-sm">
-						Status:
-						<span class="font-medium">{STATUS_LABEL[transcript.status] ?? transcript.status}</span>
-						{#if ACTIVE.has(transcript.status)}({transcript.progress}%){/if}
-					</p>
-				</div>
-				<div class="flex flex-wrap items-center gap-2">
-					<button
-						type="button"
-						onclick={copyText}
-						class="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-hover"
-					>
-						{copied ? '✓ Tersalin' : 'Salin teks'}
-					</button>
-					<div class="flex overflow-hidden rounded-lg border border-line">
-						{#each ['txt', 'srt', 'vtt', 'json'] as fmt}
-							<button
-								type="button"
-								disabled={!isDone || exporting !== null}
-								onclick={() => onExport(fmt as ExportFormat)}
-								class="border-l border-line bg-surface px-3 py-2 text-sm font-medium uppercase transition-colors first:border-l-0 hover:bg-surface-2 disabled:opacity-50"
-								title={isDone ? `Unduh ${fmt.toUpperCase()}` : 'Tersedia setelah selesai'}
-							>
-								{exporting === fmt ? '…' : fmt}
-							</button>
-						{/each}
-					</div>
-				</div>
-			</div>
-
-			{#if ACTIVE.has(transcript.status)}
-				<div class="rounded-xl border border-line bg-surface p-8 text-center">
-					<div
-						class="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-accent-soft text-2xl"
-						aria-hidden="true"
-					>
-						⏳
-					</div>
-					<p class="text-sm text-muted" aria-live="polite">
-						{STATUS_LABEL[transcript.status] ?? transcript.status} — halaman ini akan diperbarui
-						otomatis saat selesai.
-					</p>
-					<div class="mx-auto mt-4 h-2.5 max-w-sm overflow-hidden rounded-full bg-surface-2">
-						<div
-							class="h-full rounded-full bg-accent transition-[width] duration-300"
-							style="width: {transcript.progress}%"
-						></div>
-					</div>
-				</div>
-			{:else if transcript.status === 'failed'}
-				<div class="rounded-xl border border-danger/30 bg-danger/5 p-6">
-					<p class="font-medium text-danger">Transkripsi gagal</p>
-					<p class="mt-1 text-sm text-danger/90">
-						{transcript.error ?? 'Terjadi kesalahan tak diketahui.'}
-					</p>
-					<button
-						type="button"
-						onclick={onRetry}
-						class="mt-4 rounded-lg border border-warning/40 px-4 py-2 text-sm font-medium text-warning transition-colors hover:bg-warning/10"
-					>
-						↻ Ulangi transkripsi
-					</button>
-				</div>
-			{:else if transcript.status === 'cancelled'}
-				<div class="rounded-xl border border-line bg-surface p-8 text-center">
-					<p class="font-medium">Transkripsi dibatalkan</p>
-					<p class="mt-1 text-sm text-muted">Unggah ulang audio untuk mencoba lagi.</p>
-				</div>
-			{:else if isDone && segments.length === 0}
-				<div class="rounded-xl border border-line bg-surface p-8 text-center">
-					<p class="font-medium">Selesai, tanpa teks terdeteksi</p>
-					<p class="mt-1 text-sm text-muted">Audio mungkin tidak berisi ucapan yang jelas.</p>
-				</div>
-			{:else}
-				<div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-					<!-- Player (kolom kiri, sticky di layar lebar — docs/07 §3.3) -->
-					<div class="lg:sticky lg:top-6 lg:self-start">
-						<div class="rounded-xl border border-line bg-surface p-5 shadow-sm">
-							{#if hasAudio}
-								<audio
-									bind:this={audioEl}
-									src={audioSrc}
-									preload="metadata"
-									ontimeupdate={() => (currentTime = audioEl?.currentTime ?? 0)}
-									ondurationchange={() => (duration = audioEl?.duration ?? 0)}
-									onplay={() => (playing = true)}
-									onpause={() => (playing = false)}
-									onerror={onAudioError}
-									class="hidden"
-								></audio>
-								<div class="flex items-center gap-3">
-									<button
-										type="button"
-										onclick={() => skipSegment(-1)}
-										class="rounded-lg border border-line px-2.5 py-1.5 text-sm text-muted transition-colors hover:bg-surface-2"
-										aria-label="Segment sebelumnya"
-									>
-										⏮
-									</button>
-									<button
-										type="button"
-										onclick={togglePlay}
-										class="flex size-11 items-center justify-center rounded-full bg-accent text-lg text-white transition-colors hover:bg-accent-hover"
-										aria-label={playing ? 'Jeda' : 'Putar'}
-									>
-										{playing ? '⏸' : '▶'}
-									</button>
-									<button
-										type="button"
-										onclick={() => skipSegment(1)}
-										class="rounded-lg border border-line px-2.5 py-1.5 text-sm text-muted transition-colors hover:bg-surface-2"
-										aria-label="Segment berikutnya"
-									>
-										⏭
-									</button>
-									<span class="ml-1 font-mono text-xs text-muted">
-										{formatTimecode(currentTime * 1000)} /
-										{formatTimecode((duration || transcript.duration_seconds || 0) * 1000)}
-									</span>
-								</div>
-								<input
-									type="range"
-									min="0"
-									max={Math.max(duration, 0.1)}
-									step="0.1"
-									value={currentTime}
-									oninput={(e) => seekMs(Number((e.target as HTMLInputElement).value) * 1000)}
-									class="mt-4 w-full accent-[var(--color-accent)]"
-									aria-label="Posisi playback"
-								/>
-								<div class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
-									<div class="flex items-center gap-2">
-										<span class="text-muted">Kecepatan</span>
-										<select
-											value={speed}
-											onchange={(e) => setSpeed(Number((e.target as HTMLSelectElement).value))}
-											class="rounded-lg border border-line bg-surface px-2 py-1 text-sm"
-											aria-label="Kecepatan playback"
-										>
-											{#each [0.75, 1, 1.25, 1.5, 2] as v}
-												<option value={v}>{v}×</option>
-											{/each}
-										</select>
-									</div>
-									<label class="flex cursor-pointer items-center gap-2 text-muted">
-										<input type="checkbox" bind:checked={follow} class="accent-[var(--color-accent)]" />
-										Ikuti segment aktif
-									</label>
-								</div>
-							{:else}
-								<p class="text-sm text-muted">
-									🎧 Audio sudah dihapus dari penyimpanan (retensi 30 hari) — teks tetap tersedia.
-								</p>
-							{/if}
-							<dl class="mt-5 space-y-1 border-t border-line pt-4 text-sm text-muted">
-								{#if transcript.language}
-									<div class="flex justify-between">
-										<dt>Bahasa</dt>
-										<dd class="font-medium text-[var(--color-text)]">{transcript.language}</dd>
-									</div>
-								{/if}
-								<div class="flex justify-between">
-									<dt>Model</dt>
-									<dd class="font-medium text-[var(--color-text)]">{transcript.model}</dd>
-								</div>
-								<div class="flex justify-between">
-									<dt>Durasi</dt>
-									<dd class="font-medium text-[var(--color-text)]">
-										{formatDuration(transcript.duration_seconds)}
-									</dd>
-								</div>
-								<div class="flex justify-between">
-									<dt>Segment</dt>
-									<dd class="font-medium text-[var(--color-text)]">
-										{segments.length}{editedCount > 0 ? ` · ${editedCount} diedit` : ''}
-									</dd>
-								</div>
-							</dl>
-						</div>
-					</div>
-
-					<!-- Editor segment (kolom kanan) -->
-					<section aria-label="Daftar segment">
-						<h2 class="mb-3 text-sm font-semibold text-muted">
-							Transkripsi {isDone ? '· klik teks untuk mengedit' : ''}
-						</h2>
-						<ul class="space-y-1">
-							{#each segments as s (s.idx)}
-								<li
-									id="seg-{s.idx}"
-									class="flex gap-4 rounded-lg px-3 py-2 transition-colors {s.idx ===
-									activeIdx
-										? 'bg-accent-soft/70 ring-1 ring-accent/40'
-										: 'hover:bg-surface-2/60'}"
-								>
-									<button
-										type="button"
-										onclick={() => seekMs(s.start_ms + 1)}
-										class="shrink-0 pt-0.5 font-mono text-xs text-muted transition-colors hover:text-accent"
-										title="Lompat ke {formatTimecode(s.start_ms)}"
-									>
-										{formatTimecode(s.start_ms)}
-									</button>
-									<div class="min-w-0 flex-1">
-										{#if editingIdx === s.idx}
-											<textarea
-												bind:value={draft}
-												onkeydown={onDraftKey}
-												onblur={saveDraft}
-												rows="3"
-												class="w-full rounded-lg border border-accent bg-surface px-3 py-2 text-sm leading-relaxed outline-hidden focus:ring-2 focus:ring-accent/30"
-												aria-label="Edit teks segment"
-											></textarea>
-											<p class="mt-1 text-xs text-muted">⏎ simpan · Esc batal</p>
-										{:else}
-											<button
-												type="button"
-												disabled={!isDone}
-												onclick={() => startEdit(s)}
-												class="w-full text-left text-sm leading-relaxed transition-colors enabled:hover:text-[var(--color-text)] disabled:cursor-default {s
-													.text
-													.trim()
-													? '' : 'italic text-muted'}"
-											>
-												{s.text.trim() || '(kosong)'}
-											</button>
-										{/if}
-										{#if s.edited}
-											<span class="mt-1 inline-block text-[10px] uppercase tracking-wide text-muted">
-												diedit
-											</span>
-										{/if}
-									</div>
-								</li>
-							{/each}
-						</ul>
-					</section>
-				</div>
-			{/if}
+<div class="mx-auto max-w-6xl px-6 py-8">
+	{#if loading && !transcript}
+		<div class="space-y-3" aria-label="Memuat">
+			<div class="h-7 w-2/3 rounded-sm bg-surface-2"></div>
+			<div class="h-3 w-1/2 rounded-sm bg-surface-2"></div>
+			<div class="h-72 rounded-[var(--radius-card)] border border-line bg-surface"></div>
+		</div>
+	{:else if error && !transcript}
+		<div class="rounded-[var(--radius-card)] border border-line bg-surface px-6 py-12 text-center">
+			<p class="text-sm text-danger">{error}</p>
+			<a href="/dashboard" class="mt-3 inline-block text-sm font-medium hover:underline">
+				Kembali ke riwayat
+			</a>
+		</div>
+	{:else if transcript}
+		{#if error}
+			<p role="alert" class="mb-4 rounded-[var(--radius-control)] bg-pill-negative-bg px-4 py-2.5 text-sm text-pill-negative-ink">
+				{error}
+			</p>
 		{/if}
-	</main>
+
+		<!-- Baris judul: judul bisa diedit, meta angka mono, aksi ekspor di kanan -->
+		<div class="flex flex-wrap items-start justify-between gap-4">
+			<div class="min-w-0">
+				{#if editingTitle}
+					<input
+						bind:value={titleDraft}
+						onkeydown={(e) => {
+							if (e.key === 'Enter') saveTitle();
+							if (e.key === 'Escape') editingTitle = false;
+						}}
+						onblur={saveTitle}
+						class="w-full max-w-xl rounded-[var(--radius-control)] border border-control bg-surface px-3 py-1.5 text-2xl font-semibold tracking-tight outline-hidden focus:border-muted"
+						aria-label="Judul transkripsi"
+					/>
+				{:else}
+					<h1 class="flex flex-wrap items-baseline gap-3 text-2xl font-semibold tracking-tight">
+						{transcript.title}
+						{#if isDone}
+							<button type="button" onclick={startTitleEdit} class="text-sm font-normal text-muted hover:text-text hover:underline">
+								Ubah judul
+							</button>
+						{/if}
+					</h1>
+				{/if}
+				<p class="mt-1.5 text-[13px] text-muted">
+					{transcript.source_filename}
+					· <span class="num">{formatBytes(transcript.size_bytes)}</span>
+					{#if transcript.duration_seconds}
+						· <span class="num">{formatDuration(transcript.duration_seconds)}</span>
+					{/if}
+					{#if transcript.language}· bahasa {transcript.language}{/if}
+					· {transcript.model}
+					· {formatRelative(transcript.created_at)}
+				</p>
+				{#if ACTIVE.has(transcript.status)}
+					<p class="mt-1.5 text-sm text-muted" aria-live="polite">
+						Sedang diproses — <span class="num">{transcript.progress}%</span>. Halaman ini diperbarui otomatis saat selesai.
+					</p>
+				{/if}
+			</div>
+
+			<div class="flex items-center gap-2">
+				<button type="button" onclick={copyText}
+					class="h-9 rounded-[var(--radius-control)] bg-surface-2 px-3.5 text-sm font-medium text-text transition-colors hover:bg-line">
+					{copied ? 'Tersalin' : 'Salin teks'}
+				</button>
+				<div class="flex overflow-hidden rounded-[var(--radius-control)] border border-line">
+					{#each ['txt', 'srt', 'vtt', 'json'] as fmt}
+						<button
+							type="button"
+							disabled={!isDone || exporting !== null || sample}
+							onclick={() => onExport(fmt as ExportFormat)}
+							class="border-l border-line bg-surface px-3 text-sm font-medium uppercase transition-colors first:border-l-0 hover:bg-surface-2 enabled:hover:bg-surface-2 disabled:text-muted disabled:bg-surface-2/50"
+							title={isDone ? `Unduh ${fmt.toUpperCase()}` : 'Tersedia setelah selesai'}
+						>
+							{exporting === fmt ? '…' : fmt}
+						</button>
+					{/each}
+				</div>
+			</div>
+		</div>
+
+		{#if ACTIVE.has(transcript.status)}
+			<div class="mt-8 rounded-[var(--radius-card)] border border-line bg-surface px-6 py-12 text-center">
+				<p class="text-sm text-muted">Menunggu hasil — tidak ada teks yang bisa diedit sebelum selesai.</p>
+			</div>
+		{:else if transcript.status === 'failed'}
+			<div class="mt-8 rounded-[var(--radius-card)] border border-line bg-surface px-6 py-8">
+				<p class="font-medium text-danger">Transkripsi gagal</p>
+				<p class="mt-1 text-sm text-muted">{transcript.error ?? 'Terjadi kesalahan tak diketahui.'}</p>
+				<button type="button" onclick={onRetry}
+					class="mt-4 h-9 rounded-[var(--radius-control)] bg-surface-2 px-4 text-sm font-medium transition-colors hover:bg-line">
+					Ulangi transkripsi
+				</button>
+			</div>
+		{:else if transcript.status === 'cancelled'}
+			<div class="mt-8 rounded-[var(--radius-card)] border border-line bg-surface px-6 py-12 text-center">
+				<p class="font-medium">Transkripsi dibatalkan</p>
+				<p class="mt-1 text-sm text-muted">Unggah ulang audio untuk mencoba lagi.</p>
+			</div>
+		{:else if isDone && segments.length === 0}
+			<div class="mt-8 rounded-[var(--radius-card)] border border-line bg-surface px-6 py-12 text-center">
+				<p class="font-medium">Selesai, tanpa teks terdeteksi</p>
+				<p class="mt-1 text-sm text-muted">Audio mungkin tidak berisi ucapan yang jelas.</p>
+			</div>
+		{:else}
+			<div class="mt-8 grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+				<!-- Player — hue data di posisi playback -->
+				<div class="lg:sticky lg:top-[72px] lg:self-start">
+					<div class="rounded-[var(--radius-card)] border border-line bg-surface p-5">
+						{#if audioSrc}
+							<audio
+								bind:this={audioEl}
+								src={audioSrc}
+								preload="metadata"
+								ontimeupdate={() => (currentTime = audioEl?.currentTime ?? 0)}
+								ondurationchange={() => (duration = audioEl?.duration ?? 0)}
+								onplay={() => (playing = true)}
+								onpause={() => (playing = false)}
+								onerror={onAudioError}
+								class="hidden"
+							></audio>
+						{/if}
+						<div class="flex items-center gap-3">
+							<button type="button" onclick={() => skipSegment(-1)}
+								class="h-9 rounded-[var(--radius-control)] border border-line px-3 text-sm text-muted transition-colors hover:bg-surface-2"
+								aria-label="Segment sebelumnya">
+								⏮
+							</button>
+							<button type="button" onclick={togglePlay}
+								class="flex size-11 items-center justify-center rounded-full bg-accent text-white transition-colors hover:bg-accent-hover"
+								aria-label={playing ? 'Jeda' : 'Putar'}>
+								{playing ? '⏸' : '▶'}
+							</button>
+							<button type="button" onclick={() => skipSegment(1)}
+								class="h-9 rounded-[var(--radius-control)] border border-line px-3 text-sm text-muted transition-colors hover:bg-surface-2"
+								aria-label="Segment berikutnya">
+								⏭
+							</button>
+							<span class="num ml-auto text-xs text-muted">
+								{formatTimecode(currentTime * 1000)} /
+								{formatTimecode((duration || transcript.duration_seconds || 0) * 1000)}
+							</span>
+						</div>
+
+						<input type="range" min="0" max={Math.max(duration, 0.1)} step="0.1" value={currentTime}
+							oninput={(e) => seekMs(Number((e.target as HTMLInputElement).value) * 1000)}
+							class="mt-4 w-full accent-[var(--color-data)]"
+							aria-label="Posisi playback" />
+
+						<div class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
+							<label class="flex items-center gap-2 text-muted">
+								Kecepatan
+								<select value={speed} onchange={(e) => setSpeed(Number((e.target as HTMLSelectElement).value))}
+									class="h-8 rounded-[var(--radius-control)] border border-control bg-surface px-2 text-sm">
+									{#each [0.75, 1, 1.25, 1.5, 2] as v}
+										<option value={v}>{v}×</option>
+									{/each}
+								</select>
+							</label>
+							<label class="flex cursor-pointer items-center gap-2 text-muted">
+								<input type="checkbox" bind:checked={follow} class="accent-[var(--color-data)]" />
+								Ikuti segment aktif
+							</label>
+						</div>
+
+						<dl class="mt-5 space-y-1 border-t border-rule pt-4 text-sm">
+							{#if transcript.language}
+								<div class="flex h-8 items-center justify-between">
+									<dt class="text-muted">Bahasa terdeteksi</dt>
+									<dd>{transcript.language}</dd>
+								</div>
+							{/if}
+							<div class="flex h-8 items-center justify-between">
+								<dt class="text-muted">Model</dt>
+								<dd>{transcript.model}</dd>
+							</div>
+							<div class="flex h-8 items-center justify-between">
+								<dt class="text-muted">Durasi</dt>
+								<dd class="num">{formatDuration(transcript.duration_seconds)}</dd>
+							</div>
+							<div class="flex h-8 items-center justify-between">
+								<dt class="text-muted">Segment</dt>
+								<dd class="num">
+									{segments.length}{editedCount > 0 ? ` · ${editedCount} diedit` : ''}
+								</dd>
+							</div>
+						</dl>
+					</div>
+				</div>
+
+				<!-- Ledger segment: timecode mono + teks; aktif = hue data -->
+				<section aria-label="Transkripsi per segment">
+					<h2 class="mb-3 text-sm font-medium text-muted">
+						Transkripsi{isDone ? ' — klik teks untuk mengedit' : ''}
+					</h2>
+					<ul class="divide-y divide-rule rounded-[var(--radius-card)] border border-line bg-surface">
+						{#each segments as s (s.idx)}
+							<li id="seg-{s.idx}" class="relative flex gap-4 px-4 py-3 transition-colors {s.idx === activeIdx
+								? 'bg-data-soft'
+								: 'hover:bg-surface-2/50'}">
+								{#if s.idx === activeIdx}
+									<span class="absolute inset-y-0 left-0 w-0.5 bg-data" aria-hidden="true"></span>
+								{/if}
+								<button type="button" onclick={() => seekMs(s.start_ms + 1)}
+									class="num w-14 shrink-0 pt-0.5 text-right text-xs text-muted transition-colors hover:text-data"
+									title="Lompat ke {formatTimecode(s.start_ms)}">
+									{formatTimecode(s.start_ms)}
+								</button>
+								<div class="min-w-0 flex-1">
+									{#if editingIdx === s.idx}
+										<textarea bind:value={draft} onkeydown={onDraftKey} onblur={saveDraft} rows="3"
+											class="w-full rounded-[var(--radius-control)] border border-control bg-surface px-3 py-2 text-sm leading-relaxed outline-hidden focus:border-muted"
+											aria-label="Edit teks segment"></textarea>
+										<p class="mt-1 text-xs text-muted">Enter simpan · Esc batal</p>
+									{:else}
+										<button type="button" disabled={!isDone} onclick={() => startEdit(s)}
+											class="w-full text-left text-sm leading-relaxed transition-colors enabled:hover:text-text {s.text.trim() ? '' : 'italic text-muted'}">
+											{s.text.trim() || '(kosong)'}
+										</button>
+									{/if}
+									{#if s.edited}
+										<span class="mt-1 inline-block text-xs text-muted">diedit</span>
+									{/if}
+								</div>
+							</li>
+						{/each}
+					</ul>
+				</section>
+			</div>
+		{/if}
+	{/if}
 </div>

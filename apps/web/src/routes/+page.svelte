@@ -82,20 +82,20 @@
 		</div>
 
 		<dl class="grid w-full gap-4 text-left sm:grid-cols-3">
-			<div class="rounded-xl border border-line bg-surface p-5 shadow-sm">
-				<dt class="font-semibold">⚡ Cepat</dt>
+			<div class="rounded-xl border border-line bg-surface p-5">
+				<dt class="font-semibold">Cepat</dt>
 				<dd class="mt-1 text-sm text-muted">
 					Inference Groq LPU — audio 10 menit selesai di bawah 1 menit.
 				</dd>
 			</div>
-			<div class="rounded-xl border border-line bg-surface p-5 shadow-sm">
-				<dt class="font-semibold">🎯 Akurat</dt>
+			<div class="rounded-xl border border-line bg-surface p-5">
+				<dt class="font-semibold">Akurat</dt>
 				<dd class="mt-1 text-sm text-muted">
 					Model Whisper large-v3 dengan dukungan 99 bahasa & auto-detect.
 				</dd>
 			</div>
-			<div class="rounded-xl border border-line bg-surface p-5 shadow-sm">
-				<dt class="font-semibold">✏️ Bisa diedit</dt>
+			<div class="rounded-xl border border-line bg-surface p-5">
+				<dt class="font-semibold">Bisa diedit</dt>
 				<dd class="mt-1 text-sm text-muted">
 					Segment bertimestamp, klik untuk lompat audio, ekspor multi-format.
 				</dd>

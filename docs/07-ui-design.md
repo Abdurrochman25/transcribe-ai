@@ -1,5 +1,12 @@
 # 07 — UI/UX Design
 
+> **Pembaruan (Nov 2026):** UI direfactor dengan art direction "achromatic ledger"
+> (taste-skill, seed 827662554) — token di `apps/web/src/app.css` adalah sumber
+> kebenaran; snippet §2 di bawah adalah versi historis fase 0. Ringkas: ground
+> blue-grey `#f2f4f7`, chrome tinta tanpa warna merek, SATU hue data `#1d5fbf`
+> hanya untuk progres live + segment aktif, semua angka Geist Mono (ledger),
+> primer near-black `#141414`, radius 8/6/4, pill status pucat se-hue.
+
 ## 1. Prinsip Desain
 
 1. **Tenang dan fokus** — produk alat kerja: netral gelap/terang, satu warna aksen.
