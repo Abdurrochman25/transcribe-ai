@@ -120,7 +120,7 @@
 
 	{#if done}
 		<!-- Sukses upload → pantau job live; hue di progres (data), angka mono -->
-		<div class="rounded-[var(--radius-card)] border border-line bg-surface p-8">
+		<div class="rounded-(--radius-card) border border-line bg-surface p-8">
 			<h2 class="text-lg font-semibold">{done.title}</h2>
 
 			{#if !jobDone}
@@ -154,14 +154,14 @@
 			<div class="mt-6 flex gap-3">
 				<a
 					href={jobEvent?.type === 'completed' ? `/t/${done.id}` : '/dashboard'}
-					class="h-9 rounded-[var(--radius-control)] bg-accent px-4 text-sm font-medium leading-9 text-white transition-colors hover:bg-accent-hover"
+					class="h-9 rounded-(--radius-control) bg-accent px-4 text-sm font-medium leading-9 text-white transition-colors hover:bg-accent-hover"
 				>
 					{jobEvent?.type === 'completed' ? 'Lihat hasil' : 'Lihat riwayat'}
 				</a>
 				<button
 					type="button"
 					onclick={reset}
-					class="h-9 rounded-[var(--radius-control)] bg-surface-2 px-4 text-sm font-medium transition-colors hover:bg-line"
+					class="h-9 rounded-(--radius-control) bg-surface-2 px-4 text-sm font-medium transition-colors hover:bg-line"
 				>
 					Upload lagi
 				</button>
@@ -174,7 +174,7 @@
 				role="button"
 				tabindex="0"
 				aria-label="Pilih atau tarik file audio ke sini"
-				class="flex cursor-pointer flex-col items-center justify-center rounded-[var(--radius-card)] border border-dashed px-6 py-12 text-center transition-colors {dragging
+				class="flex cursor-pointer flex-col items-center justify-center rounded-(--radius-card) border border-dashed px-6 py-12 text-center transition-colors {dragging
 					? 'border-muted bg-surface-2/60'
 					: 'border-control bg-surface hover:border-muted'}"
 				ondragover={(e) => {
@@ -206,23 +206,23 @@
 			</div>
 
 			{#if error}
-				<p role="alert" class="rounded-[var(--radius-control)] bg-pill-negative-bg px-3 py-2 text-sm text-pill-negative-ink">
+				<p role="alert" class="rounded-(--radius-control) bg-pill-negative-bg px-3 py-2 text-sm text-pill-negative-ink">
 					{error}
 				</p>
 			{/if}
 
 			<!-- Opsi: label di atas field, input putih border control -->
-			<div class="space-y-4 rounded-[var(--radius-card)] border border-line bg-surface p-5">
+			<div class="space-y-4 rounded-(--radius-card) border border-line bg-surface p-5">
 				<div>
 					<label for="title" class="mb-1.5 block text-sm font-medium">Judul</label>
 					<input id="title" type="text" bind:value={title} placeholder="Otomatis dari nama file"
-						class="h-10 w-full rounded-[var(--radius-control)] border border-control bg-surface px-3 text-sm outline-hidden placeholder:text-faint focus:border-muted" />
+						class="h-10 w-full rounded-(--radius-control) border border-control bg-surface px-3 text-sm outline-hidden placeholder:text-faint focus:border-muted" />
 				</div>
 				<div class="grid gap-4 sm:grid-cols-2">
 					<div>
 						<label for="language" class="mb-1.5 block text-sm font-medium">Bahasa</label>
 						<select id="language" bind:value={language}
-							class="h-10 w-full rounded-[var(--radius-control)] border border-control bg-surface px-3 text-sm outline-hidden focus:border-muted">
+							class="h-10 w-full rounded-(--radius-control) border border-control bg-surface px-3 text-sm outline-hidden focus:border-muted">
 							<option value="">Deteksi otomatis</option>
 							<option value="id">Indonesia</option>
 							<option value="en">Inggris</option>
@@ -238,7 +238,7 @@
 					<div>
 						<label for="model" class="mb-1.5 block text-sm font-medium">Model</label>
 						<select id="model" bind:value={model}
-							class="h-10 w-full rounded-[var(--radius-control)] border border-control bg-surface px-3 text-sm outline-hidden focus:border-muted">
+							class="h-10 w-full rounded-(--radius-control) border border-control bg-surface px-3 text-sm outline-hidden focus:border-muted">
 							<option value="whisper-large-v3-turbo">whisper-large-v3-turbo (cepat)</option>
 							<option value="whisper-large-v3">whisper-large-v3 (akurat)</option>
 						</select>
@@ -250,7 +250,7 @@
 					</label>
 					<textarea id="prompt" rows="2" bind:value={prompt} maxlength="500"
 						placeholder="Contoh: nama dosen Dr. Rani, istilah: RAG, LLM, fine-tuning"
-						class="w-full rounded-[var(--radius-control)] border border-control bg-surface px-3 py-2.5 text-sm outline-hidden placeholder:text-faint focus:border-muted"></textarea>
+						class="w-full rounded-(--radius-control) border border-control bg-surface px-3 py-2.5 text-sm outline-hidden placeholder:text-faint focus:border-muted"></textarea>
 				</div>
 			</div>
 
@@ -270,7 +270,7 @@
 			<div class="flex items-center justify-end gap-4">
 				<a href="/dashboard" class="text-sm text-muted transition-colors hover:text-text">Batal</a>
 				<button type="submit" disabled={!file || uploading}
-					class="h-10 rounded-[var(--radius-control)] bg-accent px-5 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40">
+					class="h-10 rounded-(--radius-control) bg-accent px-5 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40">
 					{uploading ? 'Mengunggah…' : 'Mulai transkripsi'}
 				</button>
 			</div>

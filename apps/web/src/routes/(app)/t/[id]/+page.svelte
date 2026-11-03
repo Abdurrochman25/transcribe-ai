@@ -268,10 +268,10 @@
 		<div class="space-y-3" aria-label="Memuat">
 			<div class="h-7 w-2/3 rounded-sm bg-surface-2"></div>
 			<div class="h-3 w-1/2 rounded-sm bg-surface-2"></div>
-			<div class="h-72 rounded-[var(--radius-card)] border border-line bg-surface"></div>
+			<div class="h-72 rounded-(--radius-card) border border-line bg-surface"></div>
 		</div>
 	{:else if error && !transcript}
-		<div class="rounded-[var(--radius-card)] border border-line bg-surface px-6 py-12 text-center">
+		<div class="rounded-(--radius-card) border border-line bg-surface px-6 py-12 text-center">
 			<p class="text-sm text-danger">{error}</p>
 			<a href="/dashboard" class="mt-3 inline-block text-sm font-medium hover:underline">
 				Kembali ke riwayat
@@ -279,7 +279,7 @@
 		</div>
 	{:else if transcript}
 		{#if error}
-			<p role="alert" class="mb-4 rounded-[var(--radius-control)] bg-pill-negative-bg px-4 py-2.5 text-sm text-pill-negative-ink">
+			<p role="alert" class="mb-4 rounded-(--radius-control) bg-pill-negative-bg px-4 py-2.5 text-sm text-pill-negative-ink">
 				{error}
 			</p>
 		{/if}
@@ -295,7 +295,7 @@
 							if (e.key === 'Escape') editingTitle = false;
 						}}
 						onblur={saveTitle}
-						class="w-full max-w-xl rounded-[var(--radius-control)] border border-control bg-surface px-3 py-1.5 text-2xl font-semibold tracking-tight outline-hidden focus:border-muted"
+						class="w-full max-w-xl rounded-(--radius-control) border border-control bg-surface px-3 py-1.5 text-2xl font-semibold tracking-tight outline-hidden focus:border-muted"
 						aria-label="Judul transkripsi"
 					/>
 				{:else}
@@ -327,10 +327,10 @@
 
 			<div class="flex items-center gap-2">
 				<button type="button" onclick={copyText}
-					class="h-9 rounded-[var(--radius-control)] bg-surface-2 px-3.5 text-sm font-medium text-text transition-colors hover:bg-line">
+					class="h-9 rounded-(--radius-control) bg-surface-2 px-3.5 text-sm font-medium text-text transition-colors hover:bg-line">
 					{copied ? 'Tersalin' : 'Salin teks'}
 				</button>
-				<div class="flex overflow-hidden rounded-[var(--radius-control)] border border-line">
+				<div class="flex overflow-hidden rounded-(--radius-control) border border-line">
 					{#each ['txt', 'srt', 'vtt', 'json'] as fmt}
 						<button
 							type="button"
@@ -347,33 +347,33 @@
 		</div>
 
 		{#if ACTIVE.has(transcript.status)}
-			<div class="mt-8 rounded-[var(--radius-card)] border border-line bg-surface px-6 py-12 text-center">
+			<div class="mt-8 rounded-(--radius-card) border border-line bg-surface px-6 py-12 text-center">
 				<p class="text-sm text-muted">Menunggu hasil — tidak ada teks yang bisa diedit sebelum selesai.</p>
 			</div>
 		{:else if transcript.status === 'failed'}
-			<div class="mt-8 rounded-[var(--radius-card)] border border-line bg-surface px-6 py-8">
+			<div class="mt-8 rounded-(--radius-card) border border-line bg-surface px-6 py-8">
 				<p class="font-medium text-danger">Transkripsi gagal</p>
 				<p class="mt-1 text-sm text-muted">{transcript.error ?? 'Terjadi kesalahan tak diketahui.'}</p>
 				<button type="button" onclick={onRetry}
-					class="mt-4 h-9 rounded-[var(--radius-control)] bg-surface-2 px-4 text-sm font-medium transition-colors hover:bg-line">
+					class="mt-4 h-9 rounded-(--radius-control) bg-surface-2 px-4 text-sm font-medium transition-colors hover:bg-line">
 					Ulangi transkripsi
 				</button>
 			</div>
 		{:else if transcript.status === 'cancelled'}
-			<div class="mt-8 rounded-[var(--radius-card)] border border-line bg-surface px-6 py-12 text-center">
+			<div class="mt-8 rounded-(--radius-card) border border-line bg-surface px-6 py-12 text-center">
 				<p class="font-medium">Transkripsi dibatalkan</p>
 				<p class="mt-1 text-sm text-muted">Unggah ulang audio untuk mencoba lagi.</p>
 			</div>
 		{:else if isDone && segments.length === 0}
-			<div class="mt-8 rounded-[var(--radius-card)] border border-line bg-surface px-6 py-12 text-center">
+			<div class="mt-8 rounded-(--radius-card) border border-line bg-surface px-6 py-12 text-center">
 				<p class="font-medium">Selesai, tanpa teks terdeteksi</p>
 				<p class="mt-1 text-sm text-muted">Audio mungkin tidak berisi ucapan yang jelas.</p>
 			</div>
 		{:else}
 			<div class="mt-8 grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
 				<!-- Player — hue data di posisi playback -->
-				<div class="lg:sticky lg:top-[72px] lg:self-start">
-					<div class="rounded-[var(--radius-card)] border border-line bg-surface p-5">
+				<div class="lg:sticky lg:top-18 lg:self-start">
+					<div class="rounded-(--radius-card) border border-line bg-surface p-5">
 						{#if audioSrc}
 							<audio
 								bind:this={audioEl}
@@ -389,7 +389,7 @@
 						{/if}
 						<div class="flex items-center gap-3">
 							<button type="button" onclick={() => skipSegment(-1)}
-								class="h-9 rounded-[var(--radius-control)] border border-line px-3 text-sm text-muted transition-colors hover:bg-surface-2"
+								class="h-9 rounded-(--radius-control) border border-line px-3 text-sm text-muted transition-colors hover:bg-surface-2"
 								aria-label="Segment sebelumnya">
 								⏮
 							</button>
@@ -399,7 +399,7 @@
 								{playing ? '⏸' : '▶'}
 							</button>
 							<button type="button" onclick={() => skipSegment(1)}
-								class="h-9 rounded-[var(--radius-control)] border border-line px-3 text-sm text-muted transition-colors hover:bg-surface-2"
+								class="h-9 rounded-(--radius-control) border border-line px-3 text-sm text-muted transition-colors hover:bg-surface-2"
 								aria-label="Segment berikutnya">
 								⏭
 							</button>
@@ -411,21 +411,21 @@
 
 						<input type="range" min="0" max={Math.max(duration, 0.1)} step="0.1" value={currentTime}
 							oninput={(e) => seekMs(Number((e.target as HTMLInputElement).value) * 1000)}
-							class="mt-4 w-full accent-[var(--color-data)]"
+							class="mt-4 w-full accent-data"
 							aria-label="Posisi playback" />
 
 						<div class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
 							<label class="flex items-center gap-2 text-muted">
 								Kecepatan
 								<select value={speed} onchange={(e) => setSpeed(Number((e.target as HTMLSelectElement).value))}
-									class="h-8 rounded-[var(--radius-control)] border border-control bg-surface px-2 text-sm">
+									class="h-8 rounded-(--radius-control) border border-control bg-surface px-2 text-sm">
 									{#each [0.75, 1, 1.25, 1.5, 2] as v}
 										<option value={v}>{v}×</option>
 									{/each}
 								</select>
 							</label>
 							<label class="flex cursor-pointer items-center gap-2 text-muted">
-								<input type="checkbox" bind:checked={follow} class="accent-[var(--color-data)]" />
+								<input type="checkbox" bind:checked={follow} class="accent-data" />
 								Ikuti segment aktif
 							</label>
 						</div>
@@ -460,7 +460,7 @@
 					<h2 class="mb-3 text-sm font-medium text-muted">
 						Transkripsi{isDone ? ' — klik teks untuk mengedit' : ''}
 					</h2>
-					<ul class="divide-y divide-rule rounded-[var(--radius-card)] border border-line bg-surface">
+					<ul class="divide-y divide-rule rounded-(--radius-card) border border-line bg-surface">
 						{#each segments as s (s.idx)}
 							<li id="seg-{s.idx}" class="relative flex gap-4 px-4 py-3 transition-colors {s.idx === activeIdx
 								? 'bg-data-soft'
@@ -476,7 +476,7 @@
 								<div class="min-w-0 flex-1">
 									{#if editingIdx === s.idx}
 										<textarea bind:value={draft} onkeydown={onDraftKey} onblur={saveDraft} rows="3"
-											class="w-full rounded-[var(--radius-control)] border border-control bg-surface px-3 py-2 text-sm leading-relaxed outline-hidden focus:border-muted"
+											class="w-full rounded-(--radius-control) border border-control bg-surface px-3 py-2 text-sm leading-relaxed outline-hidden focus:border-muted"
 											aria-label="Edit teks segment"></textarea>
 										<p class="mt-1 text-xs text-muted">Enter simpan · Esc batal</p>
 									{:else}

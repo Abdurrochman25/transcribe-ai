@@ -155,7 +155,7 @@
 		</div>
 		<a
 			href={preview ? '/upload?preview=1' : '/upload'}
-			class="h-9 rounded-[var(--radius-control)] bg-accent px-4 text-sm font-medium leading-9 text-white transition-colors hover:bg-accent-hover"
+			class="h-9 rounded-(--radius-control) bg-accent px-4 text-sm font-medium leading-9 text-white transition-colors hover:bg-accent-hover"
 		>
 			Upload audio
 		</a>
@@ -179,7 +179,7 @@
 							{counts[key as keyof typeof counts]}
 						</span>
 						{#if tab === key}
-							<span class="absolute inset-x-0 bottom-[-1px] h-0.5 bg-text" aria-hidden="true"></span>
+							<span class="absolute inset-x-0 -bottom-px h-0.5 bg-text" aria-hidden="true"></span>
 						{/if}
 					</button>
 				{/each}
@@ -193,7 +193,7 @@
 				bind:value={search}
 				placeholder="Cari judul…"
 				aria-label="Cari transkripsi"
-				class="h-8 w-72 max-w-full rounded-[var(--radius-control)] border border-control bg-surface px-3 text-sm outline-hidden placeholder:text-faint focus:border-muted"
+				class="h-8 w-72 max-w-full rounded-(--radius-control) border border-control bg-surface px-3 text-sm outline-hidden placeholder:text-faint focus:border-muted"
 			/>
 			<p class="num hidden text-xs text-muted sm:block">
 				{visible.length} dari {total} transkripsi
@@ -203,13 +203,13 @@
 
 	<div class="mt-4">
 		{#if error}
-			<div class="rounded-[var(--radius-card)] border border-line bg-surface px-4 py-3">
+			<div class="rounded-(--radius-card) border border-line bg-surface px-4 py-3">
 				<p class="text-sm text-danger">{error}</p>
 				<button type="button" onclick={load} class="mt-1 text-sm font-medium underline">Coba lagi</button>
 			</div>
 		{:else if loading}
 			<!-- Loading: layout akhir, batang abu datar seukuran isi (tanpa shimmer) -->
-			<div class="divide-y divide-rule rounded-[var(--radius-card)] border border-line bg-surface" aria-label="Memuat">
+			<div class="divide-y divide-rule rounded-(--radius-card) border border-line bg-surface" aria-label="Memuat">
 				{#each Array(4) as _}
 					<div class="px-5 py-4">
 						<div class="h-4 w-1/3 rounded-sm bg-surface-2"></div>
@@ -219,7 +219,7 @@
 			</div>
 		{:else if items.length === 0}
 			<!-- First run: bingkai + aksi + cara kerja; ruang di bawahnya satu istirahat (§11) -->
-			<div class="rounded-[var(--radius-card)] border border-dashed border-control bg-surface px-6 py-10 text-center">
+			<div class="rounded-(--radius-card) border border-dashed border-control bg-surface px-6 py-10 text-center">
 				<p class="text-sm text-muted">
 					{search
 						? `Tidak ada transkripsi bernama “${search}”.`
@@ -227,31 +227,31 @@
 				</p>
 				{#if !search}
 					<ol class="mx-auto mt-6 grid max-w-lg gap-2.5 text-left text-sm text-muted sm:grid-cols-3">
-						<li class="rounded-[var(--radius-control)] bg-surface-2/60 px-4 py-3">
+						<li class="rounded-(--radius-control) bg-surface-2/60 px-4 py-3">
 							<span class="font-medium text-text">Unggah</span> rekaman kuliah, rapat, atau wawancara.
 						</li>
-						<li class="rounded-[var(--radius-control)] bg-surface-2/60 px-4 py-3">
+						<li class="rounded-(--radius-control) bg-surface-2/60 px-4 py-3">
 							<span class="font-medium text-text">Ditranskripsi</span> otomatis dengan Whisper — pantau progresnya live.
 						</li>
-						<li class="rounded-[var(--radius-control)] bg-surface-2/60 px-4 py-3">
+						<li class="rounded-(--radius-control) bg-surface-2/60 px-4 py-3">
 							<span class="font-medium text-text">Perbaiki &amp; ekspor</span> teks per segment, unduh SRT atau TXT.
 						</li>
 					</ol>
 					<a
 						href={preview ? '/upload?preview=1' : '/upload'}
-						class="mt-6 inline-block h-9 rounded-[var(--radius-control)] bg-accent px-4 text-sm font-medium leading-9 text-white transition-colors hover:bg-accent-hover"
+						class="mt-6 inline-block h-9 rounded-(--radius-control) bg-accent px-4 text-sm font-medium leading-9 text-white transition-colors hover:bg-accent-hover"
 					>
 						Upload sekarang
 					</a>
 				{/if}
 			</div>
 		{:else if visible.length === 0}
-			<div class="rounded-[var(--radius-card)] border border-dashed border-control bg-surface px-6 py-10 text-center">
+			<div class="rounded-(--radius-card) border border-dashed border-control bg-surface px-6 py-10 text-center">
 				<p class="text-sm text-muted">Tidak ada transkripsi {tab} saat ini.</p>
 			</div>
 		{:else}
 			<!-- Panel ledger: baris dua-garis, angka rata kanan tabular, satu tanda status, satu aksi -->
-			<ul class="divide-y divide-rule rounded-[var(--radius-card)] border border-line bg-surface">
+			<ul class="divide-y divide-rule rounded-(--radius-card) border border-line bg-surface">
 				{#each visible as t (t.id)}
 					{@const status = displayStatus(t)}
 					{@const running = RUNNING.has(status)}

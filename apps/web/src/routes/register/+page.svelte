@@ -55,9 +55,9 @@
 		<p class="mt-1 text-sm text-muted">Gratis, tanpa kartu kredit.</p>
 	</div>
 
-	<form onsubmit={submit} class="space-y-4 rounded-[var(--radius-card)] border border-line bg-surface p-6" novalidate>
+	<form onsubmit={submit} class="space-y-4 rounded-(--radius-card) border border-line bg-surface p-6" novalidate>
 		{#if error}
-			<p role="alert" class="rounded-[var(--radius-control)] bg-pill-negative-bg px-3 py-2 text-sm text-pill-negative-ink">
+			<p role="alert" class="rounded-(--radius-control) bg-pill-negative-bg px-3 py-2 text-sm text-pill-negative-ink">
 				{error}
 			</p>
 		{/if}
@@ -70,7 +70,7 @@
 				autocomplete="name"
 				bind:value={name}
 				required
-				class="h-10 w-full rounded-[var(--radius-control)] border border-control bg-surface px-3 text-sm outline-hidden placeholder:text-faint focus:border-muted"
+				class="h-10 w-full rounded-(--radius-control) border border-control bg-surface px-3 text-sm outline-hidden placeholder:text-faint focus:border-muted"
 				placeholder="Nama kamu"
 			/>
 			{#if fieldErrors.name}<p class="mt-1 text-xs text-danger">{fieldErrors.name}</p>{/if}
@@ -84,7 +84,7 @@
 				autocomplete="email"
 				bind:value={email}
 				required
-				class="h-10 w-full rounded-[var(--radius-control)] border border-control bg-surface px-3 text-sm outline-hidden placeholder:text-faint focus:border-muted"
+				class="h-10 w-full rounded-(--radius-control) border border-control bg-surface px-3 text-sm outline-hidden placeholder:text-faint focus:border-muted"
 				placeholder="nama@email.com"
 			/>
 			{#if fieldErrors.email}<p class="mt-1 text-xs text-danger">{fieldErrors.email}</p>{/if}
@@ -102,7 +102,7 @@
 				bind:value={password}
 				required
 				minlength="10"
-				class="h-10 w-full rounded-[var(--radius-control)] border border-control bg-surface px-3 text-sm outline-hidden focus:border-muted"
+				class="h-10 w-full rounded-(--radius-control) border border-control bg-surface px-3 text-sm outline-hidden focus:border-muted"
 			/>
 			{#if fieldErrors.password}<p class="mt-1 text-xs text-danger">{fieldErrors.password}</p>{/if}
 		</div>
@@ -116,7 +116,7 @@
 				type="text"
 				bind:value={inviteCode}
 				autocomplete="off"
-				class="h-10 w-full rounded-[var(--radius-control)] border border-control bg-surface px-3 text-sm outline-hidden placeholder:text-faint focus:border-muted"
+				class="h-10 w-full rounded-(--radius-control) border border-control bg-surface px-3 text-sm outline-hidden placeholder:text-faint focus:border-muted"
 				placeholder="Kosongkan bila tidak punya"
 			/>
 			{#if fieldErrors.invite_code}<p class="mt-1 text-xs text-danger">{fieldErrors.invite_code}</p>{/if}
@@ -125,7 +125,7 @@
 		<button
 			type="submit"
 			disabled={submitting}
-			class="h-10 w-full rounded-[var(--radius-control)] bg-accent text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+			class="h-10 w-full rounded-(--radius-control) bg-accent text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
 		>
 			{submitting ? 'Membuat akun…' : 'Daftar'}
 		</button>
