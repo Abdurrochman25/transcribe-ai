@@ -9,6 +9,13 @@
 	let fieldErrors = $state<Record<string, string>>({});
 	let submitting = $state(false);
 
+	// Sudah login (refresh cookie masih valid) → tak perlu form, langsung masuk.
+	$effect(() => {
+		auth.init().then(() => {
+			if (auth.user) goto('/dashboard', { replaceState: true });
+		});
+	});
+
 	async function submit(e: SubmitEvent) {
 		e.preventDefault();
 		error = null;

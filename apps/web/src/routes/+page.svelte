@@ -1,7 +1,17 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { auth } from '../lib/stores/auth.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
+
+	// Sudah login → beranda pribadi ada di /dashboard, bukan landing publik.
+	// (Sesi dipulihkan via refresh cookie; landing tetap ter-SSR untuk publik.)
+	$effect(() => {
+		auth.init().then(() => {
+			if (auth.user) goto('/dashboard', { replaceState: true });
+		});
+	});
 </script>
 
 <div class="mx-auto flex min-h-screen max-w-5xl flex-col px-6">
